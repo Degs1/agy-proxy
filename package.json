@@ -15,16 +15,23 @@
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",
+    "autoprefixer": "^10.6.2",
+    "lucide-react": "^1.67.0",
     "mongodb": "^6.12.0",
     "next": "^15.1.4",
+    "postcss": "^8.5.32",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.19",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.4",
     "@types/react-dom": "^19.0.2",
+    "jsdom": "^29.1.1",
     "mongodb-memory-server": "^10.1.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
