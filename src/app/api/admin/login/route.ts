@@ -94,16 +94,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const normalizedEmail = normalizeEmail(email);
-  const db = await getDatabase();
+
+  let db;
+  try {
+    db = await getDatabase();
+  } catch {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'limiter_unavailable',
+          message: 'Service Unavailable: Rate limiter state is unavailable',
+        },
+      },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
 
   // 5. Rate Limiting: reserve attempt
   const attemptId = generateRandomToken(16);
-  const rateLimitResult = await reserveLoginAttempt(
-    db,
-    normalizedEmail,
-    sourceIp.ip,
-    attemptId
-  );
+  let rateLimitResult;
+  try {
+    rateLimitResult = await reserveLoginAttempt(
+      db,
+      normalizedEmail,
+      sourceIp.ip,
+      attemptId
+    );
+  } catch {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'limiter_unavailable',
+          message: 'Service Unavailable: Rate limiter state is unavailable',
+        },
+      },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
 
   if (!rateLimitResult.allowed) {
     const retryAfter = rateLimitResult.retryAfterSeconds || 60;
@@ -125,9 +152,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 6. Look up admin document
-  const admin = await db
-    .collection<AdminDocument>(COLLECTIONS.ADMINS)
-    .findOne({ email: normalizedEmail });
+  let admin;
+  try {
+    admin = await db
+      .collection<AdminDocument>(COLLECTIONS.ADMINS)
+      .findOne({ email: normalizedEmail });
+  } catch {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'limiter_unavailable',
+          message: 'Service Unavailable: Rate limiter state is unavailable',
+        },
+      },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
 
   // 7. Verify credentials
   let isValidPassword = false;
@@ -136,13 +176,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 8. Finalize attempt in limiter
-  const finalizeResult = await finalizeLoginAttempt(
-    db,
-    normalizedEmail,
-    sourceIp.ip,
-    attemptId,
-    isValidPassword
-  );
+  let finalizeResult;
+  try {
+    finalizeResult = await finalizeLoginAttempt(
+      db,
+      normalizedEmail,
+      sourceIp.ip,
+      attemptId,
+      isValidPassword
+    );
+  } catch {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'limiter_unavailable',
+          message: 'Service Unavailable: Rate limiter state is unavailable',
+        },
+      },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
 
   if (finalizeResult.expired) {
     return NextResponse.json(
@@ -150,6 +203,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         error: {
           code: 'login_attempt_expired',
           message: 'Login attempt expired. Please try again.',
+        },
+      },
+      { status: 409, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
+  if (finalizeResult.alreadyFinalized) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'login_attempt_conflict',
+          message: 'Login attempt has already been finalized.',
         },
       },
       { status: 409, headers: { 'Cache-Control': 'no-store' } }
@@ -170,7 +235,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 9. Login Succeeded: create admin session
-  const sessionResult = await createAdminSession(db, admin._id);
+  let sessionResult;
+  try {
+    sessionResult = await createAdminSession(db, admin._id);
+  } catch {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'limiter_unavailable',
+          message: 'Service Unavailable: Failed to initialize session',
+        },
+      },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
   const { cookieSecure } = getAuthConfig();
 
   const response = NextResponse.json(
