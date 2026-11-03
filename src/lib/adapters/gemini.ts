@@ -113,7 +113,8 @@ export function mapOpenAIMessagesToGemini(messages: AdapterChatMessage[]): {
       throw new AdapterError(
         'System message cannot appear after conversation has started.',
         400,
-        'invalid_request'
+        'invalid_request',
+        'invalid_request_error'
       );
     }
 
@@ -122,6 +123,15 @@ export function mapOpenAIMessagesToGemini(messages: AdapterChatMessage[]): {
       role: geminiRole,
       parts: [{ text: msg.content }],
     });
+  }
+
+  if (contents.length === 0) {
+    throw new AdapterError(
+      'At least one user or assistant message is required.',
+      400,
+      'invalid_request',
+      'invalid_request_error'
+    );
   }
 
   const result: { contents: GeminiContent[]; systemInstruction?: GeminiSystemInstruction } = {
@@ -380,21 +390,13 @@ export class GeminiAdapter implements ProviderAdapter {
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
+    let streamFinished = false;
 
     const onAbort = () => {
       try {
         reader.cancel().catch(() => {});
       } catch {}
     };
-
-    if (context.signal) {
-      if (context.signal.aborted) {
-        const abortErr = new Error('The operation was aborted');
-        abortErr.name = 'AbortError';
-        throw abortErr;
-      }
-      context.signal.addEventListener('abort', onAbort, { once: true });
-    }
 
     let buffer = '';
     let textEmitted = false;
@@ -407,103 +409,87 @@ export class GeminiAdapter implements ProviderAdapter {
     let usageMetadata: UsageMetadata | null = null;
 
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      if (context.signal) {
+        if (context.signal.aborted) {
+          const abortErr = new Error('The operation was aborted');
+          abortErr.name = 'AbortError';
+          throw abortErr;
+        }
+        context.signal.addEventListener('abort', onAbort, { once: true });
+      }
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
+      const processLine = (line: string): Array<ChatCompletionChunk> => {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data:')) return [];
 
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data:')) continue;
+        const jsonStr = trimmed.slice(5).trim();
+        if (!jsonStr) return [];
 
-          const jsonStr = trimmed.slice(5).trim();
-          if (!jsonStr) continue;
+        let data: GeminiResponse;
+        try {
+          data = JSON.parse(jsonStr) as GeminiResponse;
+        } catch {
+          return [];
+        }
 
-          let data: GeminiResponse;
-          try {
-            data = JSON.parse(jsonStr) as GeminiResponse;
-          } catch {
-            continue;
+        // Accumulate usage
+        if (data.usageMetadata) {
+          const promptCount = data.usageMetadata.promptTokenCount;
+          const candidatesCount = data.usageMetadata.candidatesTokenCount;
+          const totalCount = data.usageMetadata.totalTokenCount;
+          if (typeof promptCount === 'number' || typeof candidatesCount === 'number') {
+            const p = typeof promptCount === 'number' ? promptCount : 0;
+            const c = typeof candidatesCount === 'number' ? candidatesCount : 0;
+            const t = typeof totalCount === 'number' ? totalCount : p + c;
+            usageMetadata = { prompt_tokens: p, completion_tokens: c, total_tokens: t };
+          }
+        }
+
+        // Check prompt block
+        if (data.promptFeedback?.blockReason) {
+          isBlocked = true;
+        }
+
+        const candidates = data.candidates;
+        const chunksToEmit: ChatCompletionChunk[] = [];
+        if (candidates && candidates.length > 0) {
+          anyCandidatesSeen = true;
+          const c0 = candidates[0];
+
+          if (c0.finishReason) {
+            if (BLOCKED_FINISH_REASONS.has(c0.finishReason)) {
+              isBlocked = true;
+            } else if (finishReasonReceived && finishReasonReceived !== c0.finishReason) {
+              hasConflictingFinishReasons = true;
+            } else {
+              finishReasonReceived = c0.finishReason;
+            }
           }
 
-          // Accumulate usage
-          if (data.usageMetadata) {
-            const promptCount = data.usageMetadata.promptTokenCount;
-            const candidatesCount = data.usageMetadata.candidatesTokenCount;
-            const totalCount = data.usageMetadata.totalTokenCount;
-            if (typeof promptCount === 'number' || typeof candidatesCount === 'number') {
-              const p = typeof promptCount === 'number' ? promptCount : 0;
-              const c = typeof candidatesCount === 'number' ? candidatesCount : 0;
-              const t = typeof totalCount === 'number' ? totalCount : p + c;
-              usageMetadata = { prompt_tokens: p, completion_tokens: c, total_tokens: t };
+          const parts = c0.content?.parts || [];
+          let chunkText = '';
+          let hasNonText = false;
+
+          for (const part of parts) {
+            if (typeof part.text === 'string') {
+              chunkText += part.text;
+            } else {
+              hasNonText = true;
             }
           }
 
-          // Check prompt block
-          if (data.promptFeedback?.blockReason) {
-            isBlocked = true;
+          if (parts.length > 0 && chunkText.length === 0 && hasNonText) {
+            if (totalTextLength === 0) {
+              onlyNonTextParts = true;
+            }
           }
 
-          const candidates = data.candidates;
-          if (candidates && candidates.length > 0) {
-            anyCandidatesSeen = true;
-            const c0 = candidates[0];
+          if (chunkText.length > 0 && !isBlocked) {
+            onlyNonTextParts = false;
+            totalTextLength += chunkText.length;
 
-            if (c0.finishReason) {
-              if (BLOCKED_FINISH_REASONS.has(c0.finishReason)) {
-                isBlocked = true;
-              } else if (finishReasonReceived && finishReasonReceived !== c0.finishReason) {
-                hasConflictingFinishReasons = true;
-              } else {
-                finishReasonReceived = c0.finishReason;
-              }
-            }
-
-            const parts = c0.content?.parts || [];
-            let chunkText = '';
-            let hasNonText = false;
-
-            for (const part of parts) {
-              if (typeof part.text === 'string') {
-                chunkText += part.text;
-              } else {
-                hasNonText = true;
-              }
-            }
-
-            if (parts.length > 0 && chunkText.length === 0 && hasNonText) {
-              if (totalTextLength === 0) {
-                onlyNonTextParts = true;
-              }
-            }
-
-            if (chunkText.length > 0 && !isBlocked) {
-              onlyNonTextParts = false;
-              totalTextLength += chunkText.length;
-
-              if (!textEmitted) {
-                // Emit initial role chunk right before first text
-                const roleChunk: ChatCompletionChunk = {
-                  id: responseId,
-                  object: 'chat.completion.chunk',
-                  created,
-                  model: request.model,
-                  choices: [
-                    {
-                      index: 0,
-                      delta: { role: 'assistant' },
-                      finish_reason: null,
-                    },
-                  ],
-                };
-                yield { type: 'chunk', chunk: roleChunk };
-                textEmitted = true;
-              }
-
-              const textChunk: ChatCompletionChunk = {
+            if (!textEmitted) {
+              const roleChunk: ChatCompletionChunk = {
                 id: responseId,
                 object: 'chat.completion.chunk',
                 created,
@@ -511,99 +497,207 @@ export class GeminiAdapter implements ProviderAdapter {
                 choices: [
                   {
                     index: 0,
-                    delta: { content: chunkText },
+                    delta: { role: 'assistant' },
                     finish_reason: null,
                   },
                 ],
               };
-              yield { type: 'chunk', chunk: textChunk };
+              chunksToEmit.push(roleChunk);
+              textEmitted = true;
             }
+
+            const textChunk: ChatCompletionChunk = {
+              id: responseId,
+              object: 'chat.completion.chunk',
+              created,
+              model: request.model,
+              choices: [
+                {
+                  index: 0,
+                  delta: { content: chunkText },
+                  finish_reason: null,
+                },
+              ],
+            };
+            chunksToEmit.push(textChunk);
+          }
+        }
+        return chunksToEmit;
+      };
+
+      while (true) {
+        if (context.signal?.aborted) {
+          const abortErr = new Error('The operation was aborted');
+          abortErr.name = 'AbortError';
+          throw abortErr;
+        }
+
+        const { done, value } = await reader.read();
+
+        if (context.signal?.aborted) {
+          const abortErr = new Error('The operation was aborted');
+          abortErr.name = 'AbortError';
+          throw abortErr;
+        }
+
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (context.signal?.aborted) {
+            const abortErr = new Error('The operation was aborted');
+            abortErr.name = 'AbortError';
+            throw abortErr;
+          }
+          const chunks = processLine(line);
+          for (const chunk of chunks) {
+            if (context.signal?.aborted) {
+              const abortErr = new Error('The operation was aborted');
+              abortErr.name = 'AbortError';
+              throw abortErr;
+            }
+            yield { type: 'chunk', chunk };
           }
         }
       }
+
+      // Check aborted immediately after loop finishes
+      if (context.signal?.aborted) {
+        const abortErr = new Error('The operation was aborted');
+        abortErr.name = 'AbortError';
+        throw abortErr;
+      }
+
+      // Flush decoder and any remaining buffer
+      const remaining = decoder.decode();
+      if (remaining) {
+        buffer += remaining;
+      }
+      if (buffer.trim()) {
+        const lines = buffer.split('\n');
+        for (const line of lines) {
+          if (context.signal?.aborted) {
+            const abortErr = new Error('The operation was aborted');
+            abortErr.name = 'AbortError';
+            throw abortErr;
+          }
+          const chunks = processLine(line);
+          for (const chunk of chunks) {
+            if (context.signal?.aborted) {
+              const abortErr = new Error('The operation was aborted');
+              abortErr.name = 'AbortError';
+              throw abortErr;
+            }
+            yield { type: 'chunk', chunk };
+          }
+        }
+        buffer = '';
+      }
+
+      // Evaluate accumulated state at stream end
+      if (isBlocked) {
+        const err = new ProviderOutputBlockedError('Provider output blocked due to safety or policy.');
+        if (!textEmitted) throw err;
+        yield { type: 'error', error: err };
+        yield { type: 'done' };
+        streamFinished = true;
+        return;
+      }
+
+      if (!anyCandidatesSeen || totalTextLength === 0) {
+        if (onlyNonTextParts) {
+          const err = new ProviderError('Provider returned unhandled non-text output.');
+          if (!textEmitted) throw err;
+          yield { type: 'error', error: err };
+          yield { type: 'done' };
+          streamFinished = true;
+          return;
+        }
+        const err = new ProviderEmptyResponseError('Provider returned empty response.');
+        if (!textEmitted) throw err;
+        yield { type: 'error', error: err };
+        yield { type: 'done' };
+        streamFinished = true;
+        return;
+      }
+
+      if (hasConflictingFinishReasons) {
+        const err = new ProviderError('Provider error occurred.');
+        if (!textEmitted) throw err;
+        yield { type: 'error', error: err };
+        yield { type: 'done' };
+        streamFinished = true;
+        return;
+      }
+
+      let mappedFinishReason: 'stop' | 'length';
+      if (finishReasonReceived === 'STOP') {
+        mappedFinishReason = 'stop';
+      } else if (finishReasonReceived === 'MAX_TOKENS') {
+        mappedFinishReason = 'length';
+      } else {
+        const err = new ProviderError('Provider error occurred.');
+        if (!textEmitted) throw err;
+        yield { type: 'error', error: err };
+        yield { type: 'done' };
+        streamFinished = true;
+        return;
+      }
+
+      // Success final chunk
+      const finalChunk: ChatCompletionChunk = {
+        id: responseId,
+        object: 'chat.completion.chunk',
+        created,
+        model: request.model,
+        choices: [
+          {
+            index: 0,
+            delta: {},
+            finish_reason: mappedFinishReason,
+          },
+        ],
+        ...(usageMetadata ? { usage: usageMetadata } : {}),
+      };
+
+      yield { type: 'chunk', chunk: finalChunk };
+      yield { type: 'done' };
+      streamFinished = true;
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
         throw err;
+      }
+      if (err instanceof AdapterError) {
+        if (!textEmitted) throw err;
+        yield { type: 'error', error: err };
+        yield { type: 'done' };
+        streamFinished = true;
+        return;
       }
       if (!textEmitted) {
         throw new ProviderUnavailableError('Provider is unreachable.');
       } else {
         yield { type: 'error', error: new ProviderUnavailableError('Provider is unreachable.') };
         yield { type: 'done' };
+        streamFinished = true;
         return;
       }
     } finally {
       if (context.signal) {
         context.signal.removeEventListener('abort', onAbort);
       }
+      if (!streamFinished) {
+        try {
+          reader.cancel().catch(() => {});
+        } catch {}
+      }
       try {
         reader.releaseLock();
       } catch {}
     }
-
-    // Evaluate accumulated state at stream end
-    if (isBlocked) {
-      const err = new ProviderOutputBlockedError('Provider output blocked due to safety or policy.');
-      if (!textEmitted) throw err;
-      yield { type: 'error', error: err };
-      yield { type: 'done' };
-      return;
-    }
-
-    if (!anyCandidatesSeen || totalTextLength === 0) {
-      if (onlyNonTextParts) {
-        const err = new ProviderError('Provider returned unhandled non-text output.');
-        if (!textEmitted) throw err;
-        yield { type: 'error', error: err };
-        yield { type: 'done' };
-        return;
-      }
-      const err = new ProviderEmptyResponseError('Provider returned empty response.');
-      if (!textEmitted) throw err;
-      yield { type: 'error', error: err };
-      yield { type: 'done' };
-      return;
-    }
-
-    if (hasConflictingFinishReasons) {
-      const err = new ProviderError('Provider error occurred.');
-      if (!textEmitted) throw err;
-      yield { type: 'error', error: err };
-      yield { type: 'done' };
-      return;
-    }
-
-    let mappedFinishReason: 'stop' | 'length';
-    if (finishReasonReceived === 'STOP') {
-      mappedFinishReason = 'stop';
-    } else if (finishReasonReceived === 'MAX_TOKENS') {
-      mappedFinishReason = 'length';
-    } else {
-      const err = new ProviderError('Provider error occurred.');
-      if (!textEmitted) throw err;
-      yield { type: 'error', error: err };
-      yield { type: 'done' };
-      return;
-    }
-
-    // Success final chunk
-    const finalChunk: ChatCompletionChunk = {
-      id: responseId,
-      object: 'chat.completion.chunk',
-      created,
-      model: request.model,
-      choices: [
-        {
-          index: 0,
-          delta: {},
-          finish_reason: mappedFinishReason,
-        },
-      ],
-      ...(usageMetadata ? { usage: usageMetadata } : {}),
-    };
-
-    yield { type: 'chunk', chunk: finalChunk };
-    yield { type: 'done' };
   }
 }
 

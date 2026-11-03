@@ -12,6 +12,7 @@ import {
   AdapterRequest,
   AdapterContext,
   AdapterChatMessage,
+  AdapterError,
   ProviderError,
   ProviderOutputBlockedError,
   ProviderEmptyResponseError,
@@ -93,7 +94,32 @@ describe('Gemini Official Provider Adapter (Requirement 4 & Requirement 5 AC 5)'
         { role: 'user', content: 'Continue' },
       ];
 
-      expect(() => mapOpenAIMessagesToGemini(messages)).toThrow();
+      expect(() => mapOpenAIMessagesToGemini(messages)).toThrowError(AdapterError);
+      try {
+        mapOpenAIMessagesToGemini(messages);
+      } catch (err: unknown) {
+        const error = err as AdapterError;
+        expect(error.statusCode).toBe(400);
+        expect(error.code).toBe('invalid_request');
+        expect(error.errorType).toBe('invalid_request_error');
+      }
+    });
+
+    it('rejects request containing only system messages with 400 invalid_request', () => {
+      const messages: AdapterChatMessage[] = [
+        { role: 'system', content: 'System instruction without conversation' },
+      ];
+
+      expect(() => mapOpenAIMessagesToGemini(messages)).toThrowError(AdapterError);
+      try {
+        mapOpenAIMessagesToGemini(messages);
+      } catch (err: unknown) {
+        const error = err as AdapterError;
+        expect(error.statusCode).toBe(400);
+        expect(error.code).toBe('invalid_request');
+        expect(error.errorType).toBe('invalid_request_error');
+        expect(error.message).toContain('At least one user or assistant message is required');
+      }
     });
 
     it('maps generationConfig with candidateCount=1 and optional temperature and max_tokens', () => {
@@ -752,18 +778,57 @@ describe('Gemini Official Provider Adapter (Requirement 4 & Requirement 5 AC 5)'
         signal: abortController.signal,
       });
 
-      // Receive first chunk
+      // Receive first chunk (roleChunk)
       const first = await gen.next();
       expect(first.value?.type).toBe('chunk');
 
       // Abort controller
       abortController.abort();
 
-      // Next iteration should terminate or throw AbortError
-      try {
-        await gen.next();
-      } catch (err: unknown) {
-        expect((err as Error).name).toBe('AbortError');
+      // Draining next iteration must reject with AbortError
+      await expect(async () => {
+        while (true) {
+          const res = await gen.next();
+          if (res.done) break;
+        }
+      }).rejects.toThrowError(/abort/i);
+
+      expect(cancelCalled).toBe(true);
+    });
+
+    it('cancels upstream reader and releases lock when consumer terminates stream prematurely', async () => {
+      let cancelCalled = false;
+      const customMockStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(
+              'data: {"candidates":[{"content":{"parts":[{"text":"Hello "}]}}]}\n\n'
+            )
+          );
+          controller.enqueue(
+            new TextEncoder().encode(
+              'data: {"candidates":[{"content":{"parts":[{"text":"world!"}]}}]}\n\n'
+            )
+          );
+        },
+        cancel() {
+          cancelCalled = true;
+        },
+      });
+
+      globalThis.fetch = vi.fn().mockResolvedValue(
+        new Response(customMockStream, {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        })
+      );
+
+      const gen = adapter.executeStream(req, ctx);
+
+      for await (const event of gen) {
+        if (event.type === 'chunk') {
+          break; // Consumer breaks early
+        }
       }
 
       expect(cancelCalled).toBe(true);
