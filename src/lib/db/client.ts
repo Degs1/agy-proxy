@@ -7,7 +7,12 @@ import {
   WriteConcern,
   ReadPreference,
 } from 'mongodb';
-import { getDatabaseConfig, maskMongoUri, DatabaseConfigError } from './config';
+import {
+  getDatabaseConfig,
+  maskMongoUri,
+  sanitizeDiagnosticText,
+  DatabaseConfigError,
+} from './config';
 
 export type DatabaseConnectionErrorCode = 'CONFIGURATION_MISSING' | 'CONNECTION_FAILED';
 
@@ -72,9 +77,7 @@ export async function getMongoClient(): Promise<MongoClient> {
 
       const masked = maskMongoUri(config.uri);
       const originalMessage = err instanceof Error ? err.message : String(err);
-      const sanitizedDetails = originalMessage
-        .replace(/(mongodb(?:\+srv)?:\/\/)[^@/\s]+@/gi, '$1***:***@')
-        .replace(/([?&][^=]+)=[^&#\s]*/g, '$1=***');
+      const sanitizedDetails = sanitizeDiagnosticText(originalMessage);
 
       const internalDiagnostics = `Host: [${masked}], DriverError: ${sanitizedDetails}`;
 
@@ -98,11 +101,7 @@ export async function getMongoClient(): Promise<MongoClient> {
 
         const masked = maskMongoUri(config.uri);
         const originalMessage = err instanceof Error ? err.message : String(err);
-
-        // Sanitize any URIs or query credentials in driver error output
-        const sanitizedDetails = originalMessage
-          .replace(/(mongodb(?:\+srv)?:\/\/)[^@/\s]+@/gi, '$1***:***@')
-          .replace(/([?&][^=]+)=[^&#\s]*/g, '$1=***');
+        const sanitizedDetails = sanitizeDiagnosticText(originalMessage);
 
         const internalDiagnostics = `Host: [${masked}], DriverError: ${sanitizedDetails}`;
 

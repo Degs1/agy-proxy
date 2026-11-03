@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:init": "tsx src/lib/db/init.ts",
+    "db:verify": "tsx src/lib/db/verify.ts",
+    "db:deploy": "tsx src/lib/db/init.ts && tsx src/lib/db/verify.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
