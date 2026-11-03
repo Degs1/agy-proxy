@@ -111,12 +111,12 @@ export async function DELETE(
       { status: 200, headers: { 'Cache-Control': 'no-store' } }
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to revoke API key';
+    console.error('Failed to revoke API key:', err);
     return NextResponse.json(
       {
         error: {
           code: 'internal_error',
-          message,
+          message: 'Failed to revoke API key',
         },
       },
       { status: 500, headers: { 'Cache-Control': 'no-store' } }
