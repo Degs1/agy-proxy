@@ -84,8 +84,7 @@ export const updateProjectSchema = z
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
 /**
- * Schema for model alias definition.
- * Stores the actual Gemini upstream model and explicit bound credential ID per Requirement 3, AC 1.
+ * Schema for model alias definition with explicit project ID.
  */
 export const modelAliasSchema = z.object({
   projectId: z.union([objectIdSchema, z.instanceof(ObjectId)]),
@@ -106,6 +105,54 @@ export const modelAliasSchema = z.object({
 });
 
 export type ModelAliasInput = z.infer<typeof modelAliasSchema>;
+
+/**
+ * Schema for creating a model alias within a project route.
+ */
+export const createModelAliasInputSchema = z.object({
+  alias: z
+    .string({ required_error: 'alias identifier is required' })
+    .trim()
+    .min(1, 'alias cannot be empty')
+    .max(100, 'alias cannot exceed 100 characters'),
+  upstreamModel: z
+    .string({ required_error: 'upstreamModel is required' })
+    .trim()
+    .min(1, 'upstreamModel cannot be empty')
+    .max(100, 'upstreamModel cannot exceed 100 characters'),
+  boundCredentialId: z.union([objectIdSchema, z.instanceof(ObjectId)], {
+    required_error: 'boundCredentialId is required',
+  }),
+  status: z.enum(['active', 'disabled']).default('active'),
+});
+
+export type CreateModelAliasInput = z.infer<typeof createModelAliasInputSchema>;
+
+/**
+ * Schema for updating an existing model alias.
+ */
+export const updateModelAliasInputSchema = z
+  .object({
+    alias: z
+      .string()
+      .trim()
+      .min(1, 'alias cannot be empty')
+      .max(100, 'alias cannot exceed 100 characters')
+      .optional(),
+    upstreamModel: z
+      .string()
+      .trim()
+      .min(1, 'upstreamModel cannot be empty')
+      .max(100, 'upstreamModel cannot exceed 100 characters')
+      .optional(),
+    boundCredentialId: z.union([objectIdSchema, z.instanceof(ObjectId)]).optional(),
+    status: z.enum(['active', 'disabled']).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided for update',
+  });
+
+export type UpdateModelAliasInput = z.infer<typeof updateModelAliasInputSchema>;
 
 /**
  * Formats a ProjectDocument for public JSON responses.
