@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDatabase, DatabaseConnectionError } from '@/lib/db/client';
+import { verifyDatabaseIndexes } from '@/lib/db/indexes';
 
 export const runtime = 'nodejs';
 
@@ -8,10 +9,32 @@ export async function GET() {
     const db = await getDatabase();
     await db.command({ ping: 1 });
 
+    // Verify critical database indexes are ready before reporting healthy status.
+    // On a fresh Atlas database without initialized indexes, status returns 503 degraded
+    // to prevent operations from running without unique index constraints.
+    const indexStatus = await verifyDatabaseIndexes(db);
+    if (!indexStatus.ready) {
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn('[Health Check Warning] Missing required database indexes:', indexStatus.missing);
+      }
+      return NextResponse.json(
+        {
+          status: 'degraded',
+          database: 'connected',
+          indexes: 'missing',
+          missingIndexes: indexStatus.missing,
+          error: 'DATABASE_INDEXES_MISSING',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       {
         status: 'healthy',
         database: 'connected',
+        indexes: 'ready',
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

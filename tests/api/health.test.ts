@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GET } from '@/app/api/health/route';
 import * as clientModule from '@/lib/db/client';
+import * as indexesModule from '@/lib/db/indexes';
 
 describe('Health Check API Route (/api/health)', () => {
   const originalEnv = process.env;
@@ -20,6 +21,7 @@ describe('Health Check API Route (/api/health)', () => {
       command: vi.fn().mockResolvedValue({ ok: 1 }),
     };
     vi.spyOn(clientModule, 'getDatabase').mockResolvedValue(mockDb as any);
+    vi.spyOn(indexesModule, 'verifyDatabaseIndexes').mockResolvedValue({ ready: true, missing: [], present: [] });
 
     const response = await GET();
     expect(response.status).toBe(200);

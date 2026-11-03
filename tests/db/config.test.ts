@@ -55,7 +55,7 @@ describe('Database Configuration & Fail-Safe Handling (Requirement 1, AC 2)', ()
       expect(maskMongoUri('')).toBe('[invalid-uri]');
       expect(maskMongoUri(null as unknown as string)).toBe('[invalid-uri]');
       expect(maskMongoUri(undefined as unknown as string)).toBe('[invalid-uri]');
-      expect(maskMongoUri('not-a-valid-uri')).toBe('not-a-valid-uri');
+      expect(maskMongoUri('not-a-valid-uri')).toBe('[invalid-uri]');
     });
   });
 

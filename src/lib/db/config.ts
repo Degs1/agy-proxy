@@ -17,40 +17,134 @@ export class DatabaseConfigError extends Error {
 /**
  * Mask sensitive credentials and query parameters from any MongoDB connection string.
  * Strips username/password and masks all query parameter values so no secrets leak into logs or diagnostics.
+ * For unparseable or unrecognized inputs without a valid URI scheme, returns the fixed marker '[invalid-uri]'.
  */
 export function maskMongoUri(uri: string): string {
-  if (!uri || typeof uri !== 'string') {
+  if (!uri || typeof uri !== 'string' || uri.trim() === '') {
     return '[invalid-uri]';
   }
 
-  try {
-    // 1. Mask user credentials in authority: scheme://[credentials@]host
-    let masked = uri.replace(
-      /^([a-zA-Z0-9+.-]+:\/\/)([^@/\s]+)@/i,
-      (_match, scheme) => `${scheme}***:***@`
-    );
+  const trimmed = uri.trim();
 
-    // 2. Mask query string parameter values: key=val -> key=***
-    const questionIdx = masked.indexOf('?');
-    if (questionIdx !== -1) {
-      const base = masked.slice(0, questionIdx);
-      const queryString = masked.slice(questionIdx + 1);
-      const maskedParams = queryString
-        .split('&')
-        .map((pair) => {
-          const eqIdx = pair.indexOf('=');
-          if (eqIdx === -1) return pair;
-          const key = pair.slice(0, eqIdx);
-          return `${key}=***`;
-        })
-        .join('&');
-      masked = `${base}?${maskedParams}`;
+  try {
+    // A valid URI must start with a recognized scheme prefix: <scheme>://
+    const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:\/\/)(.*)$/s);
+    if (!schemeMatch) {
+      // Input has no valid URI scheme structure (e.g. 'not-a-valid-uri', bare password, token)
+      return '[invalid-uri]';
     }
 
-    return masked;
+    const scheme = schemeMatch[1];
+    const remainder = schemeMatch[2];
+
+    // Separate query string if present
+    const questionIdx = remainder.indexOf('?');
+    const mainPart = questionIdx !== -1 ? remainder.slice(0, questionIdx) : remainder;
+    const queryString = questionIdx !== -1 ? remainder.slice(questionIdx + 1) : null;
+
+    // Separate authority from path
+    const slashIdx = mainPart.indexOf('/');
+    const authority = slashIdx !== -1 ? mainPart.slice(0, slashIdx) : mainPart;
+    const path = slashIdx !== -1 ? mainPart.slice(slashIdx) : '';
+
+    let sanitizedAuthority: string;
+
+    if (authority.includes('@')) {
+      // Handles authority with credentials.
+      // If there are multiple '@' characters (e.g. unencoded '@' in username/password,
+      // or malformed host injection), the LAST '@' denotes the boundary to the host(s).
+      // Everything before the last '@' constitutes userinfo credentials and MUST be masked.
+      const lastAtIndex = authority.lastIndexOf('@');
+      let hostPart = authority.slice(lastAtIndex + 1).trim();
+
+      if (!hostPart) {
+        hostPart = '[invalid-host]';
+      } else {
+        // Sanitize host part in case port contains passwords instead of numbers
+        // e.g. host:secretpassword or multiple colons
+        hostPart = hostPart
+          .split(',')
+          .map((h) => {
+            const trimmedHost = h.trim();
+            const lastColon = trimmedHost.lastIndexOf(':');
+            if (lastColon !== -1) {
+              const hostName = trimmedHost.slice(0, lastColon);
+              const port = trimmedHost.slice(lastColon + 1);
+              if (!/^\d+$/.test(port)) {
+                return `${hostName}:***`;
+              }
+            }
+            return trimmedHost;
+          })
+          .join(',');
+      }
+
+      sanitizedAuthority = `***:***@${hostPart}`;
+    } else {
+      // Authority has no '@'.
+      // Check if it looks like malformed credentials without host, e.g. 'username:password'
+      // where the part after colon is not a valid numeric port.
+      const lastColon = authority.lastIndexOf(':');
+      if (lastColon !== -1) {
+        const potentialPort = authority.slice(lastColon + 1);
+        if (!/^\d+$/.test(potentialPort)) {
+          // Non-numeric port in authority without '@' is suspicious credentials (e.g. user:password/db)
+          sanitizedAuthority = '***:***@[invalid-host]';
+        } else {
+          sanitizedAuthority = authority;
+        }
+      } else if (!authority.trim()) {
+        sanitizedAuthority = '[invalid-authority]';
+      } else {
+        sanitizedAuthority = authority;
+      }
+    }
+
+    // Sanitize query parameters so values (and bare parameters without '=') are never leaked
+    let sanitizedQuery = '';
+    if (queryString !== null) {
+      sanitizedQuery =
+        '?' +
+        queryString
+          .split('&')
+          .map((param) => {
+            if (!param) return '';
+            const eqIdx = param.indexOf('=');
+            if (eqIdx === -1) {
+              // Bare parameter without '=' could be a secret token! Mask it completely.
+              return '***';
+            }
+            const key = param.slice(0, eqIdx);
+            return `${key}=***`;
+          })
+          .join('&');
+    }
+
+    return `${scheme}${sanitizedAuthority}${path}${sanitizedQuery}`;
   } catch {
-    return '***://***:***@masked-host';
+    return '[invalid-uri]';
   }
+}
+
+/**
+ * Safely sanitizes diagnostic messages or driver error strings so that embedded URIs,
+ * usernames, passwords, or query parameter secrets are removed.
+ */
+export function sanitizeDiagnosticText(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+  // Replace URIs with maskMongoUri
+  let sanitized = text.replace(
+    /(mongodb(?:\+srv)?:\/\/[^\s"'<>]+)/gi,
+    (m) => maskMongoUri(m)
+  );
+  // Also sanitize any remaining authority patterns with multiple @
+  sanitized = sanitized.replace(
+    /([a-zA-Z0-9+.-]+:\/\/)(?:[^@/\s]+@)+/gi,
+    '$1***:***@'
+  );
+  // Sanitize any remaining query parameter values
+  sanitized = sanitized.replace(/([?&][^=]+)=[^&#\s]*/g, '$1=***');
+  return sanitized;
 }
 
 const DatabaseConfigSchema = z.object({
@@ -121,7 +215,8 @@ export function getDatabaseConfig(): DatabaseConfig {
       );
     }
 
-    // Public error message is constant and NEVER contains raw or partial URIs to guarantee zero leak
+    // Public error message is constant and NEVER contains raw or partial URIs to guarantee zero leak.
+    // sanitizedUri contains the fully masked URI or '[invalid-uri]' marker.
     throw new DatabaseConfigError(
       'Database configuration error: Invalid MONGODB_URI format. URI must be a valid mongodb:// or mongodb+srv:// connection string.',
       'INVALID_MONGODB_URI',

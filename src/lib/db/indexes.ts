@@ -1,6 +1,74 @@
 import { Db } from 'mongodb';
 import { COLLECTIONS } from './schema';
 
+export class DatabaseIndexError extends Error {
+  public readonly code = 'INDEXES_NOT_INITIALIZED';
+  public readonly missingIndexes: string[];
+
+  constructor(message: string, missingIndexes: string[] = []) {
+    super(message);
+    this.name = 'DatabaseIndexError';
+    this.missingIndexes = missingIndexes;
+  }
+}
+
+export interface RequiredIndexSpec {
+  collection: string;
+  name: string;
+  unique?: boolean;
+  ttlSeconds?: number;
+  description: string;
+}
+
+/**
+ * Core unique indexes and identity constraints required for safe operation.
+ * Absence of any of these indexes compromises data integrity (e.g. duplicate admission decisions).
+ */
+export const CRITICAL_REQUIRED_INDEXES: readonly RequiredIndexSpec[] = [
+  {
+    collection: COLLECTIONS.ADMISSION_DECISIONS,
+    name: 'uniq_admission_decision_identity',
+    unique: true,
+    description: 'Prevents duplicate admission decisions for same project, apiKeyId, requestId',
+  },
+  {
+    collection: COLLECTIONS.ADMISSION_INTENTS,
+    name: 'uniq_admission_intent_identity',
+    unique: true,
+    description: 'Prevents duplicate concurrent admission claims',
+  },
+  {
+    collection: COLLECTIONS.RATE_COUNTERS,
+    name: 'uniq_project_rate_window',
+    unique: true,
+    description: 'Enforces atomic rate limit fixed window uniqueness per project',
+  },
+  {
+    collection: COLLECTIONS.CONCURRENCY_LEASES,
+    name: 'uniq_concurrency_lease_id',
+    unique: true,
+    description: 'Enforces concurrency lease identity uniqueness',
+  },
+  {
+    collection: COLLECTIONS.API_KEYS,
+    name: 'uniq_api_key_hash',
+    unique: true,
+    description: 'Enforces API key hash uniqueness across projects',
+  },
+  {
+    collection: COLLECTIONS.ADMINS,
+    name: 'uniq_admin_email',
+    unique: true,
+    description: 'Enforces admin email identity uniqueness',
+  },
+  {
+    collection: COLLECTIONS.ADMIN_SESSIONS,
+    name: 'uniq_admin_session_token',
+    unique: true,
+    description: 'Enforces session token hash uniqueness',
+  },
+] as const;
+
 /**
  * Initialize all database indexes across MongoDB collections.
  * Operations are idempotent (MongoDB createIndex creates only if missing).
@@ -134,4 +202,69 @@ export async function initDatabaseIndexes(db: Db): Promise<void> {
     { utcMinute: 1 },
     { expireAfterSeconds: 604800, name: 'ttl_preauth_rejection_7d' }
   );
+}
+
+export interface IndexVerificationResult {
+  ready: boolean;
+  missing: string[];
+  present: string[];
+}
+
+/**
+ * Verify whether all critical database indexes exist on the target MongoDB database.
+ * Returns ready: false if collections are fresh/empty and indexes have not yet been initialized.
+ */
+export async function verifyDatabaseIndexes(db: Db): Promise<IndexVerificationResult> {
+  const missing: string[] = [];
+  const present: string[] = [];
+
+  for (const spec of CRITICAL_REQUIRED_INDEXES) {
+    try {
+      const existingIndexes = await db.collection(spec.collection).indexes();
+      const hasIndex = existingIndexes.some((idx) => idx.name === spec.name);
+      if (hasIndex) {
+        present.push(`${spec.collection}.${spec.name}`);
+      } else {
+        missing.push(`${spec.collection}.${spec.name}`);
+      }
+    } catch {
+      // Collection does not exist or namespace not found -> index is missing
+      missing.push(`${spec.collection}.${spec.name}`);
+    }
+  }
+
+  return {
+    ready: missing.length === 0,
+    missing,
+    present,
+  };
+}
+
+/**
+ * Assert that critical admission unique indexes are present before allowing admission operations.
+ * Throws DatabaseIndexError when indexes are missing to prevent duplicate decisions on uninitialized databases.
+ */
+export async function assertAdmissionIndexesReady(db: Db): Promise<void> {
+  try {
+    const existing = await db.collection(COLLECTIONS.ADMISSION_DECISIONS).indexes();
+    const hasUniqDecision = existing.some(
+      (idx) => idx.name === 'uniq_admission_decision_identity' && idx.unique === true
+    );
+
+    if (!hasUniqDecision) {
+      throw new DatabaseIndexError(
+        "Database initialization incomplete: Required unique index 'uniq_admission_decision_identity' is missing. Operations requiring Atlas fail safely to prevent duplicate admission decisions.",
+        [`${COLLECTIONS.ADMISSION_DECISIONS}.uniq_admission_decision_identity`]
+      );
+    }
+  } catch (err: unknown) {
+    if (err instanceof DatabaseIndexError) {
+      throw err;
+    }
+    // Collection does not exist yet
+    throw new DatabaseIndexError(
+      "Database initialization incomplete: Required unique index 'uniq_admission_decision_identity' is missing. Operations requiring Atlas fail safely to prevent duplicate admission decisions.",
+      [`${COLLECTIONS.ADMISSION_DECISIONS}.uniq_admission_decision_identity`]
+    );
+  }
 }
