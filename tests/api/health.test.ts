@@ -21,7 +21,7 @@ describe('Health Check API Route (/api/health)', () => {
       command: vi.fn().mockResolvedValue({ ok: 1 }),
     };
     vi.spyOn(clientModule, 'getDatabase').mockResolvedValue(mockDb as any);
-    vi.spyOn(indexesModule, 'verifyDatabaseIndexes').mockResolvedValue({ ready: true, missing: [] });
+    vi.spyOn(indexesModule, 'verifyDatabaseIndexes').mockResolvedValue({ ready: true, missing: [], present: [] });
 
     const response = await GET();
     expect(response.status).toBe(200);
