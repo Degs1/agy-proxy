@@ -24,7 +24,9 @@ export const COLLECTIONS = {
   ADMISSION_DECISIONS: 'admission_decisions',
   CONCURRENCY_LEASES: 'concurrency_leases',
   USAGE_RECORDS: 'usage_records',
+  USAGE_LOGS: 'usage_logs',
   PREAUTH_REJECTION_COUNTERS: 'preauth_rejection_counters',
+  PREAUTH_REJECTION_LOGS: 'preauth_rejection_logs',
   WORKER_HEARTBEATS: 'worker_heartbeats',
 } as const;
 
@@ -240,6 +242,42 @@ export interface UsageRecordDocument {
   outputTokens?: number | null;
   createdAt: Date;
   expiresAt: Date; // For 30-day TTL cleanup
+}
+
+export interface UsageLogDocument {
+  _id?: ObjectId;
+  requestId?: string | null;
+  projectId: ObjectId;
+  apiKeyId?: ObjectId | null;
+  model?: string | null;
+  provider?: string | null;
+  statusCode: number;
+  durationMs: number;
+  result: 'success' | 'error' | 'cancelled' | 'timeout';
+  errorCode?: string | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  streaming: boolean;
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+export interface PreauthRejectionLogDocument {
+  _id?: ObjectId;
+  requestId?: string | null;
+  startTime: Date;
+  durationMs: number;
+  statusCode: number;
+  errorCode: string | null;
+  projectId: null;
+  model: null;
+  provider: null;
+  inputTokens: null;
+  outputTokens: null;
+  totalTokens: null;
+  createdAt: Date;
+  expiresAt: Date;
 }
 
 // 16. Preauth Rejection Counters

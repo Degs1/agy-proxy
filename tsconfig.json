@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "next/server": ["./node_modules/next/server.d.ts"]
+      "next/server": ["./node_modules/next/server.d.ts"],
+      "mongodb": ["./node_modules/mongodb"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

@@ -193,6 +193,24 @@ export async function initDatabaseIndexes(db: Db): Promise<void> {
     { expireAfterSeconds: 0, name: 'ttl_usage_retention' }
   );
 
+  // 13b. Usage Logs (Requirement 8.1, 7-day retention)
+  await db.collection(COLLECTIONS.USAGE_LOGS).createIndex(
+    { projectId: 1, createdAt: -1 },
+    { name: 'idx_usage_logs_project_created' }
+  );
+  await db.collection(COLLECTIONS.USAGE_LOGS).createIndex(
+    { provider: 1, createdAt: -1 },
+    { name: 'idx_usage_logs_provider_created' }
+  );
+  await db.collection(COLLECTIONS.USAGE_LOGS).createIndex(
+    { createdAt: -1 },
+    { name: 'idx_usage_logs_created' }
+  );
+  await db.collection(COLLECTIONS.USAGE_LOGS).createIndex(
+    { expiresAt: 1 },
+    { expireAfterSeconds: 0, name: 'ttl_usage_logs_7d' }
+  );
+
   // 14. Preauth Rejection Counters
   await db.collection(COLLECTIONS.PREAUTH_REJECTION_COUNTERS).createIndex(
     { utcMinute: 1 },
@@ -201,6 +219,16 @@ export async function initDatabaseIndexes(db: Db): Promise<void> {
   await db.collection(COLLECTIONS.PREAUTH_REJECTION_COUNTERS).createIndex(
     { utcMinute: 1 },
     { expireAfterSeconds: 604800, name: 'ttl_preauth_rejection_7d' }
+  );
+
+  // 14b. Preauth Rejection Logs (Requirement 8.1, 7-day retention)
+  await db.collection(COLLECTIONS.PREAUTH_REJECTION_LOGS).createIndex(
+    { createdAt: -1 },
+    { name: 'idx_preauth_rejection_logs_created' }
+  );
+  await db.collection(COLLECTIONS.PREAUTH_REJECTION_LOGS).createIndex(
+    { expiresAt: 1 },
+    { expireAfterSeconds: 0, name: 'ttl_preauth_rejection_logs_7d' }
   );
 
   // 15. Worker Heartbeats & Health Telemetry
@@ -235,7 +263,7 @@ export async function verifyDatabaseIndexes(db: Db): Promise<IndexVerificationRe
   for (const spec of CRITICAL_REQUIRED_INDEXES) {
     try {
       const existingIndexes = await db.collection(spec.collection).indexes();
-      const hasIndex = existingIndexes.some((idx) => idx.name === spec.name);
+      const hasIndex = existingIndexes.some((idx: any) => idx.name === spec.name);
       if (hasIndex) {
         present.push(`${spec.collection}.${spec.name}`);
       } else {
@@ -262,7 +290,7 @@ export async function assertAdmissionIndexesReady(db: Db): Promise<void> {
   try {
     const existing = await db.collection(COLLECTIONS.ADMISSION_DECISIONS).indexes();
     const hasUniqDecision = existing.some(
-      (idx) => idx.name === 'uniq_admission_decision_identity' && idx.unique === true
+      (idx: any) => idx.name === 'uniq_admission_decision_identity' && idx.unique === true
     );
 
     if (!hasUniqDecision) {

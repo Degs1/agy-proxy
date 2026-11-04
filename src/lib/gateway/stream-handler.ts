@@ -19,6 +19,7 @@ import {
   StreamEvent,
 } from '@/lib/adapters';
 import { GatewayError } from '@/lib/validation/error';
+import { recordUsageLog } from '@/lib/monitoring';
 
 export interface StreamingChatCompletionOptions {
   hooks?: AdmissionHooks & {
@@ -46,6 +47,7 @@ export interface StreamingChatCompletionParams {
     stream?: boolean;
   };
   options?: StreamingChatCompletionOptions;
+  startTime?: Date;
 }
 
 /**
@@ -73,7 +75,39 @@ export async function handleStreamingChatCompletion(
     modelAlias,
     validatedRequest,
     options,
+    startTime: paramStartTime,
   } = params;
+
+  const startTime = paramStartTime ?? new Date();
+  const startTimeMs = startTime.getTime();
+  let resolution: any = null;
+
+  const logStreamUsage = async (usageParams: {
+    statusCode: number;
+    result: 'success' | 'error' | 'cancelled' | 'timeout';
+    errorCode?: string | null;
+    provider?: string | null;
+    inputTokens?: number | null;
+    outputTokens?: number | null;
+    totalTokens?: number | null;
+  }) => {
+    await recordUsageLog(db, {
+      requestId: idempotencyKey,
+      projectId,
+      apiKeyId,
+      model: modelAlias,
+      provider: usageParams.provider ?? resolution?.credential?.provider ?? null,
+      statusCode: usageParams.statusCode,
+      durationMs: Date.now() - startTimeMs,
+      result: usageParams.result,
+      errorCode: usageParams.errorCode ?? null,
+      inputTokens: usageParams.inputTokens ?? null,
+      outputTokens: usageParams.outputTokens ?? null,
+      totalTokens: usageParams.totalTokens ?? null,
+      streaming: true,
+      createdAt: startTime,
+    }).catch(() => {});
+  };
 
   // 1. Configure streaming timeout (default 600s per Requirement 7, AC 3)
   const rawTimeout = process.env.GATEWAY_STREAM_TIMEOUT_MS;
@@ -93,6 +127,24 @@ export async function handleStreamingChatCompletion(
 
   const admission = await requestAdmission(db, admissionInput, options?.hooks);
   if (!admission.admitted) {
+    const statusCode = 'httpStatus' in admission && typeof admission.httpStatus === 'number' ? admission.httpStatus : 503;
+    const errorCode = 'errorCode' in admission && admission.errorCode ? admission.errorCode : 'admission_rejected';
+    await recordUsageLog(db, {
+      requestId: idempotencyKey,
+      projectId,
+      apiKeyId,
+      model: modelAlias,
+      provider: null,
+      statusCode,
+      durationMs: Date.now() - startTimeMs,
+      result: 'error',
+      errorCode,
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+      streaming: true,
+      createdAt: startTime,
+    }).catch(() => {});
     return handleAdmissionFailure(admission, idempotencyKey);
   }
 
@@ -111,6 +163,22 @@ export async function handleStreamingChatCompletion(
   );
 
   if (!dispatch.granted) {
+    await recordUsageLog(db, {
+      requestId: idempotencyKey,
+      projectId,
+      apiKeyId,
+      model: modelAlias,
+      provider: null,
+      statusCode: 503,
+      durationMs: Date.now() - startTimeMs,
+      result: 'error',
+      errorCode: 'limiter_unavailable',
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+      streaming: true,
+      createdAt: startTime,
+    }).catch(() => {});
     return NextResponse.json(
       {
         error: {
@@ -163,7 +231,7 @@ export async function handleStreamingChatCompletion(
   const combinedSignal = AbortSignal.any(abortSignals);
 
   // 6. Decrypt bound provider credential (Safe Zero-Plaintext-Recall)
-  let resolution;
+  // resolution assigned in try block
   try {
     resolution = await resolveModelAliasCredential(db, projectId, modelAlias);
   } catch {
@@ -182,6 +250,7 @@ export async function handleStreamingChatCompletion(
       },
       { clock: options?.hooks?.clock }
     );
+    await logStreamUsage({ statusCode: 503, result: 'error', errorCode: 'provider_unavailable' });
     return NextResponse.json(
       {
         error: {
@@ -218,6 +287,7 @@ export async function handleStreamingChatCompletion(
       },
       { clock: options?.hooks?.clock }
     );
+    await logStreamUsage({ statusCode: resolution.statusCode, result: 'error', errorCode: resolution.errorCode });
     return NextResponse.json(
       {
         error: {
@@ -275,7 +345,7 @@ export async function handleStreamingChatCompletion(
       },
       { clock: options?.hooks?.clock }
     );
-
+    await logStreamUsage({ statusCode, result: finalStatus === 'cancelled' ? 'cancelled' : statusCode === 504 ? 'timeout' : 'error', errorCode });
     return NextResponse.json(
       {
         error: {
@@ -342,6 +412,7 @@ export async function handleStreamingChatCompletion(
       },
       { clock: options?.hooks?.clock }
     );
+    await logStreamUsage({ statusCode, result: 'error', errorCode });
 
     return NextResponse.json(
       {
@@ -463,6 +534,11 @@ export async function handleStreamingChatCompletion(
       },
       { clock: options?.hooks?.clock }
     );
+    await logStreamUsage({
+      statusCode,
+      result: finalStatus === 'cancelled' ? 'cancelled' : statusCode === 504 ? 'timeout' : 'error',
+      errorCode,
+    });
 
     return NextResponse.json(
       {
@@ -577,6 +653,11 @@ export async function handleStreamingChatCompletion(
 
               // Only emit final chunk and [DONE] if terminal commit confirmed!
               if (finalizeRes.success) {
+                const usage = event.chunk.usage;
+                const inputTokens = typeof usage?.prompt_tokens === 'number' ? usage.prompt_tokens : null;
+                const outputTokens = typeof usage?.completion_tokens === 'number' ? usage.completion_tokens : null;
+                const totalTokens = typeof usage?.total_tokens === 'number' ? usage.total_tokens : null;
+                await logStreamUsage({ statusCode: 200, result: 'success', inputTokens, outputTokens, totalTokens });
                 emitChunk(event.chunk);
                 emitDone();
               }
@@ -608,6 +689,7 @@ export async function handleStreamingChatCompletion(
                 },
                 { clock: options?.hooks?.clock }
               ).catch(() => {});
+              await logStreamUsage({ statusCode: 200, result: 'cancelled', errorCode: 'client_closed_request' });
               isTerminalCommitted = true;
               isStreamTerminated = true;
               try {
@@ -628,15 +710,16 @@ export async function handleStreamingChatCompletion(
                   finalStatus: 'failed',
                   originalHttpStatus: 504,
                   originalErrorCode: 'gateway_timeout',
-                },
-                { clock: options?.hooks?.clock }
-              ).catch((e) => {
+                  },
+                  { clock: options?.hooks?.clock }
+                ).catch((e) => {
                 console.warn('[StreamHandler] Failed to finalize decision on timeout error event:', e);
                 return { success: false, reason: 'error' } as const;
               });
               if (!finalizeRes.success) {
                 console.warn('[StreamHandler] Admission finalization was not successful on timeout error event:', finalizeRes);
               }
+              await logStreamUsage({ statusCode: 200, result: 'timeout', errorCode: 'gateway_timeout' });
               isTerminalCommitted = true;
               emitError({
                 message: 'Gateway timed out waiting for provider.',
@@ -672,15 +755,16 @@ export async function handleStreamingChatCompletion(
                 finalStatus: 'failed',
                 originalHttpStatus: httpStatus,
                 originalErrorCode: errCode,
-              },
-              { clock: options?.hooks?.clock }
-            ).catch((e) => {
+                },
+                { clock: options?.hooks?.clock }
+              ).catch((e) => {
               console.warn('[StreamHandler] Failed to finalize decision on error event:', e);
               return { success: false, reason: 'error' } as const;
             });
             if (!finalizeRes.success) {
               console.warn('[StreamHandler] Admission finalization was not successful on error event:', finalizeRes);
             }
+            await logStreamUsage({ statusCode: 200, result: 'error', errorCode: errCode });
 
             isTerminalCommitted = true;
             emitError({
@@ -787,6 +871,12 @@ export async function handleStreamingChatCompletion(
           console.warn('[StreamHandler] Admission finalization was not successful on catch block:', finalizeRes);
         }
 
+        await logStreamUsage({
+          statusCode,
+          result: finalStatus === 'cancelled' ? 'cancelled' : statusCode === 504 ? 'timeout' : 'error',
+          errorCode,
+        });
+
         isTerminalCommitted = true;
 
         // On client abort, do NOT send extra error or [DONE] chunks
@@ -845,6 +935,11 @@ export async function handleStreamingChatCompletion(
       if (!finalizeRes.success) {
         console.warn('[StreamHandler] Admission finalization was not successful on cancel:', finalizeRes);
       }
+      await logStreamUsage({
+        statusCode: 499,
+        result: 'cancelled',
+        errorCode: 'client_closed_request',
+      });
       isTerminalCommitted = true;
     },
   });

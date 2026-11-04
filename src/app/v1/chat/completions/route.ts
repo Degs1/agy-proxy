@@ -17,17 +17,29 @@ import {
 } from '@/lib/adapters';
 import { handleAdmissionFailure } from '@/lib/gateway/admission-failure';
 import { handleStreamingChatCompletion } from '@/lib/gateway/stream-handler';
+import { recordUsageLog, recordPreauthRejection } from '@/lib/monitoring';
 
 export const runtime = 'nodejs';
 export const maxDuration = 660;
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest | Request): Promise<NextResponse | Response> {
+  const startTime = new Date();
+  const startTimeMs = startTime.getTime();
+  let resolvedProvider: string | null = null;
   const db = await getDatabase();
 
   // 1. Authenticate Project API Key
   const authResult = await authenticateApiKeyRequest(request, db);
   if (!authResult.valid) {
+    const rawReqId = request.headers.get('Idempotency-Key') || request.headers.get('idempotency-key') || null;
+    await recordPreauthRejection(db, {
+      requestId: rawReqId,
+      startTime,
+      durationMs: Date.now() - startTimeMs,
+      statusCode: authResult.status,
+      errorCode: authResult.code,
+    }).catch(() => {});
     return authResult.response;
   }
 
@@ -44,6 +56,27 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
   try {
     processed = await validateGatewayRequest(request);
   } catch (err: unknown) {
+    const rawReqId = request.headers.get('Idempotency-Key') || request.headers.get('idempotency-key') || null;
+    const errStatusCode = err instanceof GatewayError ? err.httpStatus : 400;
+    const errCode = err instanceof GatewayError ? String(err.code) : 'invalid_request';
+
+    await recordUsageLog(db, {
+      requestId: rawReqId,
+      projectId,
+      apiKeyId,
+      model: null,
+      provider: resolvedProvider ?? null,
+      statusCode: errStatusCode,
+      durationMs: Date.now() - startTimeMs,
+      result: 'error',
+      errorCode: errCode,
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+      streaming: false,
+      createdAt: startTime,
+    }).catch(() => {});
+
     if (err instanceof GatewayError) {
       return NextResponse.json(err.toResponseObject(), {
         status: err.httpStatus,
@@ -83,6 +116,23 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
     .findOne({ projectId, alias: modelAlias });
 
   if (!aliasDoc) {
+    await recordUsageLog(db, {
+      requestId: idempotencyKey,
+      projectId,
+      apiKeyId,
+      model: modelAlias,
+      provider: resolvedProvider ?? null,
+      statusCode: 404,
+      durationMs: Date.now() - startTimeMs,
+      result: 'error',
+      errorCode: 'model_not_found',
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+      streaming: validatedRequest.stream === true,
+      createdAt: startTime,
+    }).catch(() => {});
+
     return NextResponse.json(
       {
         error: {
@@ -104,6 +154,23 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
   }
 
   if (aliasDoc.status !== 'active') {
+    await recordUsageLog(db, {
+      requestId: idempotencyKey,
+      projectId,
+      apiKeyId,
+      model: modelAlias,
+      provider: resolvedProvider ?? null,
+      statusCode: 403,
+      durationMs: Date.now() - startTimeMs,
+      result: 'error',
+      errorCode: 'model_disabled',
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+      streaming: validatedRequest.stream === true,
+      createdAt: startTime,
+    }).catch(() => {});
+
     return NextResponse.json(
       {
         error: {
@@ -135,6 +202,7 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
       fingerprint,
       modelAlias,
       validatedRequest,
+      startTime,
     });
   }
 
@@ -187,7 +255,9 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
             modelAlias
           );
 
-          if (!resolution.success) {
+          if (resolution.success) {
+            resolvedProvider = resolution.credential.provider;
+          } else {
             throw new GatewayError({
               message: resolution.message,
               httpStatus: resolution.statusCode,
@@ -269,8 +339,44 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
 
     if (!outcome.success) {
       if ('admissionResult' in outcome) {
+        const adm = outcome.admissionResult;
+        const statusCode = 'httpStatus' in adm && typeof adm.httpStatus === 'number' ? adm.httpStatus : 503;
+        const errorCode = 'errorCode' in adm && adm.errorCode ? adm.errorCode : 'admission_rejected';
+        await recordUsageLog(db, {
+          requestId: idempotencyKey,
+          projectId,
+          apiKeyId,
+          model: modelAlias,
+          provider: resolvedProvider ?? null,
+          statusCode,
+          durationMs: Date.now() - startTimeMs,
+          result: 'error',
+          errorCode,
+          inputTokens: null,
+          outputTokens: null,
+          totalTokens: null,
+          streaming: false,
+          createdAt: startTime,
+        }).catch(() => {});
         return handleAdmissionFailure(outcome.admissionResult, idempotencyKey);
       }
+
+      await recordUsageLog(db, {
+        requestId: idempotencyKey,
+        projectId,
+        apiKeyId,
+        model: modelAlias,
+        provider: resolvedProvider ?? null,
+        statusCode: 503,
+        durationMs: Date.now() - startTimeMs,
+        result: 'error',
+        errorCode: 'limiter_unavailable',
+        inputTokens: null,
+        outputTokens: null,
+        totalTokens: null,
+        streaming: false,
+        createdAt: startTime,
+      }).catch(() => {});
 
       return NextResponse.json(
         {
@@ -293,6 +399,28 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
     }
 
     // Successfully committed terminal decision and released concurrency lease!
+    const usage = (outcome.result as any)?.usage;
+    const inputTokens = typeof usage?.prompt_tokens === 'number' ? usage.prompt_tokens : null;
+    const outputTokens = typeof usage?.completion_tokens === 'number' ? usage.completion_tokens : null;
+    const totalTokens = typeof usage?.total_tokens === 'number' ? usage.total_tokens : null;
+
+    await recordUsageLog(db, {
+      requestId: idempotencyKey,
+      projectId,
+      apiKeyId,
+      model: modelAlias,
+      provider: resolvedProvider ?? 'gemini',
+      statusCode: 200,
+      durationMs: Date.now() - startTimeMs,
+      result: 'success',
+      errorCode: null,
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      streaming: false,
+      createdAt: startTime,
+    }).catch(() => {});
+
     return NextResponse.json(outcome.result, {
       status: 200,
       headers: {
@@ -302,6 +430,28 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
       },
     });
   } catch (err: unknown) {
+    const isGatewayError = err instanceof GatewayError;
+    const statusCode = isGatewayError ? err.httpStatus : 500;
+    const errorCode = isGatewayError ? String(err.code) : 'internal_error';
+    const result = statusCode === 499 ? 'cancelled' : statusCode === 504 ? 'timeout' : 'error';
+
+    await recordUsageLog(db, {
+      requestId: idempotencyKey,
+      projectId,
+      apiKeyId,
+      model: modelAlias,
+      provider: resolvedProvider ?? null,
+      statusCode,
+      durationMs: Date.now() - startTimeMs,
+      result,
+      errorCode,
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+      streaming: false,
+      createdAt: startTime,
+    }).catch(() => {});
+
     if (err instanceof GatewayError) {
       return NextResponse.json(err.toResponseObject(), {
         status: err.httpStatus,
