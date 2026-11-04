@@ -1,7 +1,7 @@
 import {
   createInvalidRequestError,
   createUnsupportedFeatureError,
-} from './error.js';
+} from './error';
 
 export interface ValidatedChatMessage {
   role: 'system' | 'user' | 'assistant';

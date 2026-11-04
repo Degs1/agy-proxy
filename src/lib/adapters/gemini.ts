@@ -321,7 +321,7 @@ export class GeminiAdapter implements ProviderAdapter {
         signal: context.signal,
       });
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (context.signal?.aborted || (err instanceof Error && (err.name === 'AbortError' || err.message === 'Aborted'))) {
         throw err;
       }
       // Zero secret leak on network failure
@@ -371,7 +371,7 @@ export class GeminiAdapter implements ProviderAdapter {
         signal: context.signal,
       });
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (context.signal?.aborted || (err instanceof Error && (err.name === 'AbortError' || err.message === 'Aborted'))) {
         throw err;
       }
       throw new ProviderUnavailableError('Provider is unreachable.');
@@ -453,6 +453,7 @@ export class GeminiAdapter implements ProviderAdapter {
         const candidates = data.candidates;
         const chunksToEmit: ChatCompletionChunk[] = [];
         if (candidates && candidates.length > 0) {
+          const hadPriorFinishReason = finishReasonReceived !== null;
           anyCandidatesSeen = true;
           const c0 = candidates[0];
 
@@ -476,6 +477,10 @@ export class GeminiAdapter implements ProviderAdapter {
             } else {
               hasNonText = true;
             }
+          }
+
+          if (hadPriorFinishReason) {
+            chunkText = '';
           }
 
           if (parts.length > 0 && chunkText.length === 0 && hasNonText) {
@@ -667,7 +672,7 @@ export class GeminiAdapter implements ProviderAdapter {
       yield { type: 'done' };
       streamFinished = true;
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (context.signal?.aborted || (err instanceof Error && (err.name === 'AbortError' || err.message === 'Aborted'))) {
         throw err;
       }
       if (err instanceof AdapterError) {

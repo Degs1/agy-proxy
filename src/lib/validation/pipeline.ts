@@ -1,7 +1,7 @@
-import { readBoundedBody, parseBoundedJson } from './body-reader.js';
-import { validateChatCompletionRequest, type ValidatedChatCompletionRequest } from './chat-completion.js';
-import { computePayloadFingerprint } from './fingerprint.js';
-import { validateIdempotencyKey } from './uuid.js';
+import { readBoundedBody, parseBoundedJson } from './body-reader';
+import { validateChatCompletionRequest, type ValidatedChatCompletionRequest } from './chat-completion';
+import { computePayloadFingerprint } from './fingerprint';
+import { validateIdempotencyKey } from './uuid';
 
 export interface ProcessedGatewayRequest {
   idempotencyKey: string;

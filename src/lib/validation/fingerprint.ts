@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { ValidatedChatCompletionRequest } from './chat-completion.js';
+import type { ValidatedChatCompletionRequest } from './chat-completion';
 
 export function serializeCanonicalJson(val: unknown): string {
   if (val === null || val === undefined) {

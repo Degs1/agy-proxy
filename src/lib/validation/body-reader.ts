@@ -1,4 +1,4 @@
-import { createInvalidRequestError, createPayloadTooLargeError } from './error.js';
+import { createInvalidRequestError, createPayloadTooLargeError } from './error';
 
 export const MAX_BODY_SIZE_BYTES = 1024 * 1024; // 1 MiB = 1,048,576 bytes
 

@@ -649,14 +649,14 @@ describe('TASK-052: Endpoint Non-Stream POST /v1/chat/completions', () => {
       expect(dataTools.error.code).toBe('unsupported_feature');
       expect(dataTools.error.param).toBe('tools');
 
-      // stream: true in nonstream endpoint
+      // n: 1 parameter is unsupported per TC-REQ5-EXT-03
       const reqStream = buildRequest({
         bearerToken: testBearerKey,
         idempotencyKey: crypto.randomUUID(),
         body: {
           model: testModelAlias,
           messages: [{ role: 'user', content: 'Hai' }],
-          stream: true,
+          n: 1,
         },
       });
       const resStream = await POST(reqStream);
