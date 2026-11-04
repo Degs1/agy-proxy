@@ -16,6 +16,7 @@ import { touchProjectLimiterGuard } from '@/lib/projects/limiter-guard';
 import { withTransaction } from '@/lib/db/client';
 import { GatewayError } from '@/lib/validation/error';
 import { claimAdmissionIntent } from './claim';
+import { startLeaseHeartbeat } from './heartbeat';
 import {
   AdmissionRequestInput,
   AdmissionResult,
@@ -24,6 +25,30 @@ import {
   LimiterUnavailableError,
 } from './types';
 import crypto from 'crypto';
+
+/**
+ * Detects whether an error represents an unknown transaction commit outcome
+ * from either MongoDB driver errorLabels, method checks, or message content.
+ */
+function isUnknownCommitResult(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) {
+    return false;
+  }
+  if ('hasErrorLabel' in err && typeof (err as any).hasErrorLabel === 'function') {
+    if ((err as any).hasErrorLabel('UnknownTransactionCommitResult')) {
+      return true;
+    }
+  }
+  if ('errorLabels' in err && Array.isArray((err as any).errorLabels)) {
+    if ((err as any).errorLabels.includes('UnknownTransactionCommitResult')) {
+      return true;
+    }
+  }
+  if (err instanceof Error && err.message.includes('UnknownTransactionCommitResult')) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Calculates Retry-After seconds for rate limit retries based on original window or default 1s.
@@ -618,14 +643,8 @@ export async function requestAdmission(
         'Service Unavailable: Attempt was fenced by concurrent process'
       );
     }
-    // Check if error is UnknownTransactionCommitResult simulation
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'errorLabels' in err &&
-      Array.isArray((err as any).errorLabels) &&
-      (err as any).errorLabels.includes('UnknownTransactionCommitResult')
-    ) {
+    // Check if error is UnknownTransactionCommitResult
+    if (isUnknownCommitResult(err)) {
       // Re-read primary to verify if decision actually committed
       const committed = await verifyUncertainAdmission(db, {
         projectId: input.projectId,
@@ -845,6 +864,55 @@ export async function acquireDispatchPermission(
  * - Verifies decision is still `running`, `attemptId` matches, and `expiresAt > serverTime`.
  * - Tightly prevents late workers whose lease expired from releasing another job's lease.
  */
+export async function verifyTerminalCommit(
+  db: Db,
+  params: {
+    decisionId: ObjectId;
+    attemptId?: string;
+  }
+): Promise<{
+  confirmed: boolean;
+  status?: string;
+  decision?: AdmissionDecisionDocument;
+}> {
+  const decision = await db
+    .collection<AdmissionDecisionDocument>(COLLECTIONS.ADMISSION_DECISIONS)
+    .findOne(
+      {
+        _id: params.decisionId,
+        ...(params.attemptId ? { attemptId: params.attemptId } : {}),
+      },
+      {
+        readPreference: 'primary',
+        readConcern: { level: 'majority' },
+      }
+    );
+
+  if (!decision) {
+    return { confirmed: false };
+  }
+
+  const isTerminal = ['succeeded', 'failed', 'cancelled', 'lease_expired'].includes(
+    decision.status
+  );
+
+  return {
+    confirmed: isTerminal,
+    status: decision.status,
+    decision,
+  };
+}
+
+/**
+ * Finalizes an admission decision upon completion, error, or cancellation.
+ * Releases the concurrency lease in the same transaction.
+ *
+ * Requirements:
+ * - Operates within multi-document transaction.
+ * - FIRST operation: `touchProjectLimiterGuard` for server time.
+ * - Verifies decision is still `running`, `attemptId` matches, and `expiresAt > serverTime`.
+ * - Tightly prevents late workers whose lease expired from releasing another job's lease.
+ */
 export async function finalizeAdmissionDecision(
   db: Db,
   params: {
@@ -858,101 +926,133 @@ export async function finalizeAdmissionDecision(
   },
   options?: {
     clock?: { now: () => Date };
+    simulateUnknownCommit?: boolean;
+    beforeCommit?: () => Promise<void>;
   }
 ): Promise<{ success: boolean; reason?: string; completedAt?: Date }> {
-  return withTransaction(async (session) => {
-    // 1. Touch limiter guard
-    const guard = await touchProjectLimiterGuard(db, params.projectId, session);
-    const serverTime = options?.clock ? options.clock.now() : guard.last_server_time;
+  try {
+    return await withTransaction(async (session) => {
+      // 1. Touch limiter guard
+      const guard = await touchProjectLimiterGuard(db, params.projectId, session);
+      const serverTime = options?.clock ? options.clock.now() : guard.last_server_time;
 
-    // 2. Verify lease is still active (expiresAt > serverTime)
-    const lease = await db
-      .collection<ConcurrencyLeaseDocument>(COLLECTIONS.CONCURRENCY_LEASES)
-      .findOne(
+      // 2. Verify lease is still active (expiresAt > serverTime)
+      const lease = await db
+        .collection<ConcurrencyLeaseDocument>(COLLECTIONS.CONCURRENCY_LEASES)
+        .findOne(
+          {
+            leaseId: params.leaseId,
+            projectId: params.projectId,
+            decisionId: params.decisionId,
+            expiresAt: { $gt: serverTime },
+          },
+          { session }
+        );
+
+      if (!lease) {
+        return {
+          success: false,
+          reason: 'lease_expired',
+        };
+      }
+
+      // 3. Verify decision is still running with matching attemptId
+      const decision = await db
+        .collection<AdmissionDecisionDocument>(COLLECTIONS.ADMISSION_DECISIONS)
+        .findOne(
+          {
+            _id: params.decisionId,
+            attemptId: params.attemptId,
+            status: 'running',
+          },
+          { session }
+        );
+
+      if (!decision) {
+        return {
+          success: false,
+          reason: 'decision_not_running',
+        };
+      }
+
+      // 4. Update decision to terminal status
+      const outcome: AdmissionDecisionOutcome = {
+        status: params.finalStatus,
+        originalHttpStatus: params.originalHttpStatus,
+        originalErrorCode: params.originalErrorCode,
+        completedAt: serverTime,
+      };
+
+      await db.collection(COLLECTIONS.ADMISSION_DECISIONS).updateOne(
+        { _id: params.decisionId },
         {
-          leaseId: params.leaseId,
+          $set: {
+            status: params.finalStatus,
+            dispatchStatus: 'dispatched',
+            terminalAt: serverTime,
+            dedupeUntil: new Date(serverTime.getTime() + 24 * 3600 * 1000),
+            outcome,
+          },
+        },
+        { session }
+      );
+
+      // 5. Update claim to terminal
+      await db.collection(COLLECTIONS.ADMISSION_INTENTS).updateOne(
+        {
           projectId: params.projectId,
-          decisionId: params.decisionId,
-          expiresAt: { $gt: serverTime },
-        },
-        { session }
-      );
-
-    if (!lease) {
-      return {
-        success: false,
-        reason: 'lease_expired',
-      };
-    }
-
-    // 3. Verify decision is still running with matching attemptId
-    const decision = await db
-      .collection<AdmissionDecisionDocument>(COLLECTIONS.ADMISSION_DECISIONS)
-      .findOne(
-        {
-          _id: params.decisionId,
+          apiKeyId: decision.apiKeyId,
+          requestId: decision.requestId,
           attemptId: params.attemptId,
-          status: 'running',
+        },
+        {
+          $set: {
+            status: 'terminal',
+            dedupeUntil: new Date(serverTime.getTime() + 24 * 3600 * 1000),
+          },
         },
         { session }
       );
 
-    if (!decision) {
+      // 6. Release concurrency lease
+      await db.collection(COLLECTIONS.CONCURRENCY_LEASES).deleteOne(
+        { leaseId: params.leaseId },
+        { session }
+      );
+
+      if (options?.beforeCommit) {
+        await options.beforeCommit();
+      }
+
+      if (options?.simulateUnknownCommit) {
+        throw new Error('UnknownTransactionCommitResult: simulated commit uncertainty');
+      }
+
       return {
-        success: false,
-        reason: 'decision_not_running',
+        success: true,
+        completedAt: serverTime,
       };
-    }
-
-    // 4. Update decision to terminal status
-    const outcome: AdmissionDecisionOutcome = {
-      status: params.finalStatus,
-      originalHttpStatus: params.originalHttpStatus,
-      originalErrorCode: params.originalErrorCode,
-      completedAt: serverTime,
-    };
-
-    await db.collection(COLLECTIONS.ADMISSION_DECISIONS).updateOne(
-      { _id: params.decisionId },
-      {
-        $set: {
-          status: params.finalStatus,
-          dispatchStatus: 'dispatched',
-          terminalAt: serverTime,
-          dedupeUntil: new Date(serverTime.getTime() + 24 * 3600 * 1000),
-          outcome,
-        },
-      },
-      { session }
-    );
-
-    // 5. Update claim to terminal
-    await db.collection(COLLECTIONS.ADMISSION_INTENTS).updateOne(
-      {
-        projectId: params.projectId,
-        requestId: decision.requestId,
+    });
+  } catch (err: unknown) {
+    if (isUnknownCommitResult(err)) {
+      const verified = await verifyTerminalCommit(db, {
+        decisionId: params.decisionId,
         attemptId: params.attemptId,
-      },
-      {
-        $set: {
-          status: 'terminal',
-          dedupeUntil: new Date(serverTime.getTime() + 24 * 3600 * 1000),
-        },
-      },
-      { session }
-    );
+      });
 
-    // 6. Release concurrency lease
-    await db.collection(COLLECTIONS.CONCURRENCY_LEASES).deleteOne(
-      { leaseId: params.leaseId },
-      { session }
-    );
+      if (verified.confirmed && verified.status === params.finalStatus) {
+        return {
+          success: true,
+          completedAt: verified.decision?.terminalAt || new Date(),
+        };
+      }
 
-    return {
-      success: true,
-      completedAt: serverTime,
-    };
-  });
+      throw new LimiterUnavailableError(
+        'Service Unavailable: Terminal transaction commit result unknown and unverified'
+      );
+    }
+    throw err;
+  }
 }
 
 /**
@@ -964,11 +1064,29 @@ export async function extendConcurrencyLease(
     projectId: ObjectId;
     decisionId: ObjectId;
     leaseId: string;
+  },
+  options?: {
+    clock?: { now: () => Date };
   }
 ): Promise<{ success: boolean; expiresAt?: Date; reason?: string }> {
   return withTransaction(async (session) => {
     const guard = await touchProjectLimiterGuard(db, params.projectId, session);
-    const serverTime = guard.last_server_time;
+    const serverTime = options?.clock ? options.clock.now() : guard.last_server_time;
+
+    // Verify decision is still running
+    const decision = await db
+      .collection<AdmissionDecisionDocument>(COLLECTIONS.ADMISSION_DECISIONS)
+      .findOne(
+        {
+          _id: params.decisionId,
+          status: 'running',
+        },
+        { session }
+      );
+
+    if (!decision) {
+      return { success: false, reason: 'decision_not_running' };
+    }
 
     const lease = await db
       .collection<ConcurrencyLeaseDocument>(COLLECTIONS.CONCURRENCY_LEASES)
@@ -1000,14 +1118,44 @@ export async function extendConcurrencyLease(
 /**
  * Reconciles expired concurrency leases (e.g. after worker crash or timeout).
  * Marks orphaned decisions as `lease_expired` and deletes the expired leases.
+ * Can reconcile a single project (when projectId provided) or scan all projects.
  */
 export async function reconcileExpiredLeases(
   db: Db,
-  projectId: ObjectId
+  projectId?: ObjectId,
+  options?: {
+    clock?: { now: () => Date };
+  }
+): Promise<number> {
+  if (projectId) {
+    return reconcileProjectExpiredLeases(db, projectId, options);
+  }
+
+  // Scan across projects for expired leases
+  const now = options?.clock ? options.clock.now() : new Date();
+  const expiredProjectIds = await db
+    .collection<ConcurrencyLeaseDocument>(COLLECTIONS.CONCURRENCY_LEASES)
+    .distinct('projectId', {
+      expiresAt: { $lte: now },
+    });
+
+  let totalReconciled = 0;
+  for (const pid of expiredProjectIds) {
+    totalReconciled += await reconcileProjectExpiredLeases(db, pid as ObjectId, options);
+  }
+  return totalReconciled;
+}
+
+export async function reconcileProjectExpiredLeases(
+  db: Db,
+  projectId: ObjectId,
+  options?: {
+    clock?: { now: () => Date };
+  }
 ): Promise<number> {
   return withTransaction(async (session) => {
     const guard = await touchProjectLimiterGuard(db, projectId, session);
-    const serverTime = guard.last_server_time;
+    const serverTime = options?.clock ? options.clock.now() : guard.last_server_time;
 
     const expiredLeases = await db
       .collection<ConcurrencyLeaseDocument>(COLLECTIONS.CONCURRENCY_LEASES)
@@ -1051,6 +1199,7 @@ export async function reconcileExpiredLeases(
         await db.collection(COLLECTIONS.ADMISSION_INTENTS).updateOne(
           {
             projectId,
+            apiKeyId: decision.apiKeyId,
             requestId: decision.requestId,
             attemptId: decision.attemptId,
           },
@@ -1082,9 +1231,10 @@ export async function reconcileExpiredLeases(
 export async function dispatchWithAdmission<T>(
   db: Db,
   input: AdmissionRequestInput,
-  providerFn: () => Promise<T>,
+  providerFn: (signal?: AbortSignal) => Promise<T>,
   options?: {
     hooks?: AdmissionHooks;
+    heartbeatIntervalMs?: number;
   }
 ): Promise<
   | { success: true; result: T; decisionId: ObjectId; completedAt: Date }
@@ -1119,11 +1269,26 @@ export async function dispatchWithAdmission<T>(
     };
   }
 
-  // 3. Dispatch to provider (ONLY confirmed transitions reach here)
+  // 3. Start lease heartbeat with AbortSignal
+  const leaseCtrl = startLeaseHeartbeat(
+    db,
+    {
+      projectId: input.projectId,
+      decisionId: admission.decisionId,
+      leaseId: admission.leaseId,
+    },
+    {
+      heartbeatIntervalMs: options?.heartbeatIntervalMs,
+      clock: options?.hooks?.clock,
+    }
+  );
+
+  // 4. Dispatch to provider (pass leaseCtrl.signal)
   let result: T;
   try {
-    result = await providerFn();
+    result = await providerFn(leaseCtrl.signal);
   } catch (err: unknown) {
+    leaseCtrl.stop();
     // Finalize failure
     const originalHttpStatus =
       err instanceof GatewayError ? err.httpStatus : 502;
@@ -1145,9 +1310,20 @@ export async function dispatchWithAdmission<T>(
     );
 
     throw err;
+  } finally {
+    leaseCtrl.stop();
   }
 
-  // 4. Finalize success terminal transaction
+  // If lease aborted or expired during provider execution
+  if (leaseCtrl.isExpired()) {
+    return {
+      success: false,
+      dispatchFailed: true,
+      reason: 'lease_expired_during_execution',
+    };
+  }
+
+  // 5. Finalize success terminal transaction
   const finalization = await finalizeAdmissionDecision(
     db,
     {

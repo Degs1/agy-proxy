@@ -202,6 +202,20 @@ export async function initDatabaseIndexes(db: Db): Promise<void> {
     { utcMinute: 1 },
     { expireAfterSeconds: 604800, name: 'ttl_preauth_rejection_7d' }
   );
+
+  // 15. Worker Heartbeats & Health Telemetry
+  await db.collection(COLLECTIONS.WORKER_HEARTBEATS).createIndex(
+    { workerType: 1, instanceId: 1 },
+    { unique: true, name: 'uniq_worker_instance' }
+  );
+  await db.collection(COLLECTIONS.WORKER_HEARTBEATS).createIndex(
+    { lastHeartbeatAt: 1 },
+    { name: 'idx_worker_heartbeat_time' }
+  );
+  await db.collection(COLLECTIONS.WORKER_HEARTBEATS).createIndex(
+    { updatedAt: 1 },
+    { expireAfterSeconds: 604800, name: 'ttl_worker_heartbeats_7d' }
+  );
 }
 
 export interface IndexVerificationResult {

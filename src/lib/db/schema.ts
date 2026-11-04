@@ -25,6 +25,7 @@ export const COLLECTIONS = {
   CONCURRENCY_LEASES: 'concurrency_leases',
   USAGE_RECORDS: 'usage_records',
   PREAUTH_REJECTION_COUNTERS: 'preauth_rejection_counters',
+  WORKER_HEARTBEATS: 'worker_heartbeats',
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
@@ -247,4 +248,23 @@ export interface PreauthRejectionCounterDocument {
   utcMinute: Date;
   count: number;
   createdAt: Date;
+}
+
+// 17. Worker Heartbeats & Health Telemetry
+export interface WorkerHeartbeatDocument {
+  _id?: ObjectId;
+  workerType: 'recovery';
+  instanceId: string;
+  hostname?: string;
+  pid?: number;
+  lastHeartbeatAt: Date;
+  lastScanStartedAt: Date;
+  lastScanDurationMs?: number;
+  scanIntervalMs: number;
+  status: 'healthy' | 'degraded' | 'stopped' | 'dead';
+  reconciledCountTotal: number;
+  consecutiveErrors: number;
+  lastError?: string | null;
+  startedAt: Date;
+  updatedAt: Date;
 }
