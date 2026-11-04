@@ -7,6 +7,7 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 120000,
     hookTimeout: 300000,
+    exclude: ['**/node_modules/**', 'tests/validation/**'],
   },
   resolve: {
     alias: {

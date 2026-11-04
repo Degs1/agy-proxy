@@ -10,7 +10,7 @@
     "db:init": "tsx src/lib/db/init.ts",
     "db:verify": "tsx src/lib/db/verify.ts",
     "db:deploy": "tsx src/lib/db/init.ts && tsx src/lib/db/verify.ts",
-    "test": "vitest run",
+    "test": "vitest run && tsx --test tests/validation/body-reader.test.ts tests/validation/chat-completion.test.ts tests/validation/fingerprint.test.ts tests/validation/pipeline.test.ts",
     "test:watch": "vitest"
   },
   "dependencies": {

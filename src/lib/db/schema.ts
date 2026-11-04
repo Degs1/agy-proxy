@@ -173,6 +173,9 @@ export interface AdmissionIntentDocument {
   claimedAt: Date;
   claimExpiresAt: Date;
   fencedAt?: Date;
+  fencedAttemptId?: string;
+  committedAt?: Date;
+  lastVerifiedAt?: Date;
   dedupeUntil?: Date;
 }
 
@@ -184,6 +187,8 @@ export type AdmissionDecisionStatus =
   | 'failed'
   | 'cancelled'
   | 'lease_expired';
+
+export type DispatchStatus = 'undispatched' | 'dispatching' | 'dispatched';
 
 export interface AdmissionDecisionOutcome {
   status: AdmissionDecisionStatus;
@@ -200,6 +205,8 @@ export interface AdmissionDecisionDocument {
   attemptId: string;
   payloadFingerprint: string;
   status: AdmissionDecisionStatus;
+  dispatchStatus?: DispatchStatus;
+  dispatchedAt?: Date;
   createdAt: Date;
   terminalAt?: Date;
   dedupeUntil: Date;
