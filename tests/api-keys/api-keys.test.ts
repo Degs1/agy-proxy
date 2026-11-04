@@ -280,6 +280,25 @@ describe('API Key Management & Bearer Authentication (Requirement 3.2, 3.3, 3.6 
       expect(data.secret.startsWith('agw_')).toBe(true);
       expect(data.apiKey.keyHash).toBeUndefined();
     });
+
+    it('POST /api/admin/projects/:id/keys accepts expiresAt: null for never-expiring keys', async () => {
+      const db = await getDatabase();
+      const project = await createProject(db, { name: 'Null Expiry Key Project' });
+      const projectId = project._id!.toString();
+
+      const req = createAdminRequest(
+        `http://localhost:3000/api/admin/projects/${projectId}/keys`,
+        'POST',
+        { body: { name: 'Permanent Key', expiresAt: null } }
+      );
+      const res = await createProjectKeyRoute(req, { params: Promise.resolve({ id: projectId }) });
+      expect(res.status).toBe(201);
+
+      const data = await res.json();
+      expect(data.apiKey).toBeDefined();
+      expect(data.apiKey.name).toBe('Permanent Key');
+      expect(data.apiKey.expiresAt).toBeNull();
+    });
   });
 
   // =========================================================================

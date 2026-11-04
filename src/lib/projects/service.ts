@@ -83,10 +83,10 @@ export async function validateCredentialForBinding(
     );
   }
 
-  if (cred.provider !== 'gemini') {
+  if (cred.provider !== 'gemini' && cred.provider !== 'antigravity') {
     throw new InvalidCredentialBindingError(
       'non_gemini_provider',
-      `Credential ${credentialId} is for provider '${cred.provider}'. Aliases may only bind to official Gemini provider credentials.`
+      `Credential ${credentialId} is for provider '${cred.provider}'. Aliases may only bind to official Gemini provider credentials or Antigravity credentials.`
     );
   }
 

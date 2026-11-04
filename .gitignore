@@ -30,6 +30,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# sokudo / dev tools
+.sokudo/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

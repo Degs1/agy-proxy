@@ -23,13 +23,17 @@ export function CreateAliasModal({
 }: CreateAliasModalProps) {
   const [alias, setAlias] = useState('');
   const [upstreamModel, setUpstreamModel] = useState('gemini-2.5-flash');
+  const [isCustomModel, setIsCustomModel] = useState(false);
   const [boundCredentialId, setBoundCredentialId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // STRICT FILTER: Only active Gemini credentials belonging to this project
+  // STRICT FILTER: Only active Gemini or Antigravity credentials belonging to this project
   const eligibleCredentials = credentials.filter(
-    (c) => c.status === 'active' && c.provider === 'gemini' && c.projectId === projectId
+    (c) =>
+      c.status === 'active' &&
+      (c.provider === 'gemini' || c.provider === 'antigravity') &&
+      c.projectId === projectId
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +41,12 @@ export function CreateAliasModal({
     setError(null);
 
     if (!boundCredentialId) {
-      setError('Kredensial Gemini aktif wajib dipilih untuk mengikat model alias.');
+      setError('Kredensial aktif wajib dipilih untuk mengikat model alias.');
+      return;
+    }
+
+    if (!upstreamModel.trim()) {
+      setError('Upstream model wajib diisi.');
       return;
     }
 
@@ -66,6 +75,7 @@ export function CreateAliasModal({
         onClose();
         setAlias('');
         setUpstreamModel('gemini-2.5-flash');
+        setIsCustomModel(false);
         setBoundCredentialId('');
       }
     } catch (err: unknown) {
@@ -75,12 +85,17 @@ export function CreateAliasModal({
     }
   };
 
+  const handleClose = () => {
+    setError(null);
+    onClose();
+  };
+
   return (
     <Dialog
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="Buat Model Alias Baru"
-      description="Petakan nama model publik ke upstream Gemini provider resmi yang terikat pada project ini."
+      description="Petakan nama model publik ke upstream Gemini atau Antigravity provider resmi yang terikat pada project ini."
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,7 +116,7 @@ export function CreateAliasModal({
             required
             value={alias}
             onChange={(e) => setAlias(e.target.value)}
-            placeholder="Contoh: gemini-default atau gemini-fast"
+            placeholder="Contoh: gemini-default atau claude-3-5"
             className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
           />
           <p className="text-[11px] text-muted-foreground mt-1">
@@ -111,28 +126,61 @@ export function CreateAliasModal({
 
         <div>
           <label htmlFor="create-alias-upstream" className="block text-xs font-medium text-foreground mb-1">
-            Upstream Model Gemini <span className="text-red-400">*</span>
+            Upstream Model Gemini / Antigravity <span className="text-red-400">*</span>
           </label>
-          <select
-            id="create-alias-upstream"
-            value={upstreamModel}
-            onChange={(e) => setUpstreamModel(e.target.value)}
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-          >
-            <option value="gemini-2.5-flash">gemini-2.5-flash (Direkomendasikan - Default)</option>
-            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-            <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-          </select>
+          <div className="space-y-2">
+            <select
+              id="create-alias-upstream"
+              value={isCustomModel ? 'custom' : upstreamModel}
+              onChange={(e) => {
+                if (e.target.value === 'custom') {
+                  setIsCustomModel(true);
+                  setUpstreamModel('');
+                } else {
+                  setIsCustomModel(false);
+                  setUpstreamModel(e.target.value);
+                }
+              }}
+              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+            >
+              <optgroup label="Model Gemini (Google AI Studio)">
+                <option value="gemini-2.5-flash">gemini-2.5-flash (Direkomendasikan - Default)</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+              </optgroup>
+              <optgroup label="Model Antigravity (Google Cloud Code)">
+                <option value="claude-3-7-sonnet">claude-3-7-sonnet</option>
+                <option value="claude-3-5-sonnet">claude-3-5-sonnet</option>
+                <option value="gemini-exp-1206">gemini-exp-1206</option>
+              </optgroup>
+              <optgroup label="Model Kustom">
+                <option value="custom">-- Masukkan Model Kustom Lainnya --</option>
+              </optgroup>
+            </select>
+            {isCustomModel && (
+              <input
+                type="text"
+                required
+                value={upstreamModel}
+                onChange={(e) => setUpstreamModel(e.target.value)}
+                placeholder="Contoh: claude-3-5-sonnet atau gemini-2.5-flash"
+                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+              />
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Model upstream yang dituju pada provider backend.
+          </p>
         </div>
 
         <div>
           <label htmlFor="create-alias-cred" className="block text-xs font-medium text-foreground mb-1">
-            Kredensial Gemini Terikat (Project Sama) <span className="text-red-400">*</span>
+            Kredensial Gemini Terikat / Antigravity (Project Sama) <span className="text-red-400">*</span>
           </label>
           {eligibleCredentials.length === 0 ? (
             <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-xs text-yellow-500">
-              Belum ada kredensial Gemini aktif pada project ini. Daftarkan kredensial Gemini terlebih dahulu di tab Provider Credentials sebelum mengikat alias.
+              Belum ada kredensial Gemini atau Antigravity aktif pada project ini. Daftarkan kredensial terlebih dahulu di tab Provider Credentials sebelum mengikat alias.
             </div>
           ) : (
             <select
@@ -142,10 +190,10 @@ export function CreateAliasModal({
               onChange={(e) => setBoundCredentialId(e.target.value)}
               className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">-- Pilih Kredensial Gemini Aktif --</option>
+              <option value="">-- Pilih Kredensial Gemini / Antigravity Aktif --</option>
               {eligibleCredentials.map((cred) => (
                 <option key={cred.id} value={cred.id}>
-                  {cred.displayName} (v{cred.keyVersion})
+                  {cred.displayName} [{cred.provider === 'antigravity' ? 'Antigravity OAuth' : 'Gemini API'}] (v{cred.keyVersion})
                 </option>
               ))}
             </select>
@@ -157,7 +205,7 @@ export function CreateAliasModal({
         </div>
 
         <div className="flex justify-end gap-3 pt-3 border-t border-border">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+          <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
             Batal
           </Button>
           <Button

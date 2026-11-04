@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db/client';
 import {
-  ADMIN_PRE_CSRF_COOKIE,
+  getAdminPreCsrfCookie,
   CSRF_HEADER_NAME,
   verifyAnonymousCsrf,
   verifyMutationOrigin,
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 2. Verify Anonymous CSRF (pre-session cookie and X-CSRF-Token header)
   const xCsrfToken = request.headers.get(CSRF_HEADER_NAME);
-  const preCookie = request.cookies.get(ADMIN_PRE_CSRF_COOKIE)?.value;
+  const preCookie = getAdminPreCsrfCookie(request);
 
   if (!xCsrfToken || !preCookie || !verifyAnonymousCsrf(xCsrfToken, preCookie)) {
     return NextResponse.json(

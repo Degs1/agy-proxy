@@ -7,12 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:init": "tsx src/lib/db/init.ts",
-    "db:verify": "tsx src/lib/db/verify.ts",
-    "db:deploy": "tsx src/lib/db/init.ts && tsx src/lib/db/verify.ts",
+    "db:init": "tsx --env-file=.env src/lib/db/init.ts",
+    "db:verify": "tsx --env-file=.env src/lib/db/verify.ts",
+    "db:deploy": "tsx --env-file=.env src/lib/db/init.ts && tsx --env-file=.env src/lib/db/verify.ts",
+    "auth:bootstrap": "tsx --env-file=.env scripts/bootstrap-admin.ts",
     "test": "vitest run && tsx --test tests/validation/body-reader.test.ts tests/validation/chat-completion.test.ts tests/validation/fingerprint.test.ts tests/validation/pipeline.test.ts",
     "test:watch": "vitest",
-    "worker:recovery": "tsx src/workers/recovery-worker.ts"
+    "worker:recovery": "tsx src/workers/recovery-worker.ts",
+    "auth:antigravity": "tsx --env-file=.env scripts/connect-antigravity.ts",
+    "test:chat": "tsx scripts/test-chat-completion.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

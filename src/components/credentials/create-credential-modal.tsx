@@ -10,6 +10,7 @@ interface CreateCredentialModalProps {
   onClose: () => void;
   onSuccess: (credential: ProviderCredential) => void;
   fetchWithCsrf: (url: string, init?: RequestInit) => Promise<Response>;
+  onOpenAntigravity?: () => void;
 }
 
 export function CreateCredentialModal({
@@ -18,6 +19,7 @@ export function CreateCredentialModal({
   onClose,
   onSuccess,
   fetchWithCsrf,
+  onOpenAntigravity,
 }: CreateCredentialModalProps) {
   const [displayName, setDisplayName] = useState('');
   const [provider, setProvider] = useState<'gemini'>('gemini');
@@ -106,7 +108,16 @@ export function CreateCredentialModal({
             </option>
           </select>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Sesuai keputusan arsitektur MVP, hanya Gemini API resmi yang didukung secara operasional.
+            Untuk Google Antigravity, gunakan alur OAuth resmi.{' '}
+            {onOpenAntigravity && (
+              <button
+                type="button"
+                onClick={onOpenAntigravity}
+                className="text-sky-400 underline font-medium inline hover:text-sky-300"
+              >
+                Buka Hubungkan Antigravity (OAuth) →
+              </button>
+            )}
           </p>
         </div>
 

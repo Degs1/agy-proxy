@@ -388,6 +388,42 @@ describe('Provider Credential API, Versioned Ciphertext & Key Rotation (Requirem
         .findOne({ _id: testProjectId });
       expect(guardAfter!.revision).toBe(guardBefore!.revision + 1);
     });
+
+    it('permanently deletes credential when permanent=true query is provided', async () => {
+      const db = await getDatabase();
+      const created = await createCredential(db, testProjectId, {
+        displayName: 'Key To Delete Permanently',
+        provider: 'gemini',
+        credentialType: 'api_key',
+        secret: 'AIzaSyPermanentDeleteSecret',
+        status: 'active',
+      });
+
+      const guardBefore = await db
+        .collection<ProjectLimiterGuardDocument>(COLLECTIONS.PROJECT_LIMITER_GUARDS)
+        .findOne({ _id: testProjectId });
+
+      const req = createAuthRequest(
+        'DELETE',
+        `http://localhost:3000/api/admin/projects/${testProjectId}/credentials/${created._id}?permanent=true`
+      );
+      const res = await deleteCredentialRoute(req, {
+        params: { id: testProjectId.toString(), credId: created._id!.toString() },
+      });
+      expect(res.status).toBe(200);
+
+      // Verify document in DB is permanently deleted
+      const updated = await db
+        .collection<ProviderCredentialDocument>(COLLECTIONS.PROVIDER_CREDENTIALS)
+        .findOne({ _id: created._id });
+      expect(updated).toBeNull();
+
+      // Limiter guard revision incremented
+      const guardAfter = await db
+        .collection<ProjectLimiterGuardDocument>(COLLECTIONS.PROJECT_LIMITER_GUARDS)
+        .findOne({ _id: testProjectId });
+      expect(guardAfter!.revision).toBe(guardBefore!.revision + 1);
+    });
   });
 
   describe('4. Safe Decryption Helper & Access Controls', () => {

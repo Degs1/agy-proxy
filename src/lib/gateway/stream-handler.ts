@@ -10,7 +10,7 @@ import {
   AdmissionHooks,
 } from '@/lib/limiter';
 import { handleAdmissionFailure } from './admission-failure';
-import { resolveModelAliasCredential } from '@/lib/credentials/resolver';
+import { resolveModelAliasCredential, createAntigravityRefreshTokenCallback } from '@/lib/credentials/resolver';
 import {
   getProviderAdapter,
   AdapterError,
@@ -385,6 +385,7 @@ export async function handleStreamingChatCompletion(
     signal: combinedSignal,
     id: responseId,
     created,
+    onRefreshToken: createAntigravityRefreshTokenCallback(db, resolution.credential, resolution.secret),
   };
 
   let streamGen: AsyncGenerator<StreamEvent, void, unknown>;

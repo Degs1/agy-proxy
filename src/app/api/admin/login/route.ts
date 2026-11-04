@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db/client';
 import {
-  ADMIN_SESSION_COOKIE,
   ADMIN_PRE_CSRF_COOKIE,
+  DEV_ADMIN_PRE_CSRF_COOKIE,
+  getAdminSessionCookieName,
+  getAdminPreCsrfCookie,
   CSRF_HEADER_NAME,
   generateRandomToken,
   verifyAnonymousCsrf,
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 2. Verify Anonymous CSRF (pre-session cookie and X-CSRF-Token header)
   const xCsrfToken = request.headers.get(CSRF_HEADER_NAME);
-  const preCookie = request.cookies.get(ADMIN_PRE_CSRF_COOKIE)?.value;
+  const preCookie = getAdminPreCsrfCookie(request);
 
   if (!xCsrfToken || !preCookie || !verifyAnonymousCsrf(xCsrfToken, preCookie)) {
     return NextResponse.json(
@@ -265,9 +267,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   );
 
-  // Set __Host-admin_session cookie
+  // Set admin session cookie
   response.cookies.set({
-    name: ADMIN_SESSION_COOKIE,
+    name: getAdminSessionCookieName(),
     value: sessionResult.sessionToken,
     httpOnly: true,
     secure: cookieSecure,
@@ -276,9 +278,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     maxAge: Math.floor(SESSION_ABSOLUTE_LIFETIME_MS / 1000),
   });
 
-  // Clear anonymous pre-session cookie
+  // Clear anonymous pre-session cookies (both production and dev)
   response.cookies.set({
     name: ADMIN_PRE_CSRF_COOKIE,
+    value: '',
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 0,
+  });
+  response.cookies.set({
+    name: DEV_ADMIN_PRE_CSRF_COOKIE,
     value: '',
     httpOnly: true,
     secure: cookieSecure,

@@ -842,12 +842,12 @@ describe('Gemini Official Provider Adapter (Requirement 4 & Requirement 5 AC 5)'
       expect(resolved.providerType).toBe('gemini');
     });
 
-    it('rejects unsupported providers (antigravity, openai, etc.) with 503 provider_unavailable', () => {
-      expect(() => getProviderAdapter('antigravity')).toThrowError(ProviderUnavailableError);
+    it('rejects unsupported providers (anthropic, openai, etc.) with 503 provider_unavailable', () => {
+      expect(() => getProviderAdapter('anthropic')).toThrowError(ProviderUnavailableError);
       expect(() => getProviderAdapter('openai')).toThrowError(ProviderUnavailableError);
 
       try {
-        getProviderAdapter('antigravity');
+        getProviderAdapter('anthropic');
       } catch (err: unknown) {
         const error = err as ProviderUnavailableError;
         expect(error.statusCode).toBe(503);

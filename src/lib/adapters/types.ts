@@ -23,6 +23,7 @@ export interface AdapterContext {
   signal?: AbortSignal;
   id?: string;
   created?: number;
+  onRefreshToken?: () => Promise<string>;
 }
 
 export interface UsageMetadata {

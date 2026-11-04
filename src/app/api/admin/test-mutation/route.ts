@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db/client';
 import {
-  ADMIN_SESSION_COOKIE,
+  getAdminSessionCookie,
   CSRF_HEADER_NAME,
   verifyMutationOrigin,
 } from '@/lib/auth/csrf';
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 2. Verify Session
-  const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  const sessionCookie = getAdminSessionCookie(request);
   if (!sessionCookie) {
     return NextResponse.json(
       {

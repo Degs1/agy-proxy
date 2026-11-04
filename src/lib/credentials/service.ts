@@ -240,6 +240,31 @@ export async function revokeCredential(
 }
 
 /**
+ * Permanently deletes a credential within an atomic transaction.
+ * Immediately invalidates subsequent gateway admissions via limiter guard.
+ */
+export async function deleteCredential(
+  db: Db,
+  projectId: string | ObjectId,
+  credentialId: string | ObjectId
+): Promise<boolean> {
+  const pId = typeof projectId === 'string' ? (ObjectId.isValid(projectId) ? new ObjectId(projectId) : null) : projectId;
+  const cId = typeof credentialId === 'string' ? (ObjectId.isValid(credentialId) ? new ObjectId(credentialId) : null) : credentialId;
+
+  if (!pId || !cId) return false;
+
+  return withTransaction(async (session: ClientSession) => {
+    await touchProjectLimiterGuard(db, pId, session);
+
+    const res = await db
+      .collection<ProviderCredentialDocument>(COLLECTIONS.PROVIDER_CREDENTIALS)
+      .deleteOne({ _id: cId, projectId: pId }, { session });
+
+    return res.deletedCount > 0;
+  });
+}
+
+/**
  * Migrates a credential's encryption key to the active key version (or specified targetVersion).
  * Decrypts with the previous key version, re-encrypts with the target key version,
  * verifies round-trip decryption, and atomically saves the new ciphertext.

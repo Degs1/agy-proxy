@@ -3,7 +3,51 @@ import { getAuthConfig, normalizeOrigin } from './config';
 
 export const ADMIN_SESSION_COOKIE = '__Host-admin_session';
 export const ADMIN_PRE_CSRF_COOKIE = '__Host-admin_csrf_pre';
+export const DEV_ADMIN_SESSION_COOKIE = 'admin_session';
+export const DEV_ADMIN_PRE_CSRF_COOKIE = 'admin_csrf_pre';
 export const CSRF_HEADER_NAME = 'x-csrf-token';
+
+/**
+ * Returns the effective cookie name for the admin session.
+ * Uses RFC 6265bis '__Host-admin_session' when cookieSecure is true,
+ * and falls back to 'admin_session' when cookieSecure is false (HTTP development).
+ */
+export function getAdminSessionCookieName(): string {
+  return getAuthConfig().cookieSecure ? ADMIN_SESSION_COOKIE : DEV_ADMIN_SESSION_COOKIE;
+}
+
+/**
+ * Returns the effective cookie name for anonymous pre-session CSRF.
+ * Uses RFC 6265bis '__Host-admin_csrf_pre' when cookieSecure is true,
+ * and falls back to 'admin_csrf_pre' when cookieSecure is false (HTTP development).
+ */
+export function getAdminPreCsrfCookieName(): string {
+  return getAuthConfig().cookieSecure ? ADMIN_PRE_CSRF_COOKIE : DEV_ADMIN_PRE_CSRF_COOKIE;
+}
+
+/**
+ * Extracts admin session cookie value, checking both production and dev cookie names.
+ */
+export function getAdminSessionCookie(
+  request: { cookies: { get: (name: string) => { value?: string } | undefined } }
+): string | undefined {
+  return (
+    request.cookies.get(ADMIN_SESSION_COOKIE)?.value ||
+    request.cookies.get(DEV_ADMIN_SESSION_COOKIE)?.value
+  );
+}
+
+/**
+ * Extracts anonymous pre-session CSRF cookie value, checking both production and dev cookie names.
+ */
+export function getAdminPreCsrfCookie(
+  request: { cookies: { get: (name: string) => { value?: string } | undefined } }
+): string | undefined {
+  return (
+    request.cookies.get(ADMIN_PRE_CSRF_COOKIE)?.value ||
+    request.cookies.get(DEV_ADMIN_PRE_CSRF_COOKIE)?.value
+  );
+}
 
 // 15 minutes validity for anonymous pre-session CSRF tokens
 export const ANONYMOUS_CSRF_MAX_AGE_SECONDS = 15 * 60;

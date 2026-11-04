@@ -13,7 +13,9 @@ import { CreateApiKeyModal } from '@/components/api-keys/create-api-key-modal';
 import { CreateCredentialModal } from '@/components/credentials/create-credential-modal';
 import { RotateKeyModal } from '@/components/credentials/rotate-key-modal';
 import { CreateAliasModal } from '@/components/aliases/create-alias-modal';
+import { ConnectAntigravityModal } from '@/components/credentials/connect-antigravity-modal';
 import {
+  Sparkles,
   ChevronLeft,
   KeyRound,
   Layers,
@@ -66,10 +68,15 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
   // Modals state
   const [isCreateKeyOpen, setIsCreateKeyOpen] = useState(false);
   const [isCreateCredOpen, setIsCreateCredOpen] = useState(false);
+  const [isConnectAntigravityOpen, setIsConnectAntigravityOpen] = useState(false);
   const [isCreateAliasOpen, setIsCreateAliasOpen] = useState(false);
   const [rotatingCred, setRotatingCred] = useState<ProviderCredential | null>(null);
   const [revokingKey, setRevokingKey] = useState<ApiKeyItem | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [deletingAlias, setDeletingAlias] = useState<ModelAlias | null>(null);
+  const [isDeletingAlias, setIsDeletingAlias] = useState(false);
+  const [deletingCred, setDeletingCred] = useState<ProviderCredential | null>(null);
+  const [isDeletingCred, setIsDeletingCred] = useState(false);
 
   // Load project and all resources
   const loadAll = useCallback(async () => {
@@ -173,6 +180,48 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
       alert(err instanceof Error ? err.message : 'Gagal mencabut key');
     } finally {
       setIsRevoking(false);
+    }
+  };
+
+  // Handle alias deletion
+  const handleDeleteAlias = async () => {
+    if (!deletingAlias) return;
+    setIsDeletingAlias(true);
+    try {
+      const res = await fetchWithCsrf(`/api/admin/projects/${projectId}/aliases/${deletingAlias.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.error?.message || 'Gagal menghapus model alias');
+      }
+      setAliases((prev) => prev.filter((a) => a.id !== deletingAlias.id));
+      setDeletingAlias(null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menghapus alias');
+    } finally {
+      setIsDeletingAlias(false);
+    }
+  };
+
+  // Handle provider credential deletion
+  const handleDeleteCredential = async () => {
+    if (!deletingCred) return;
+    setIsDeletingCred(true);
+    try {
+      const res = await fetchWithCsrf(`/api/admin/projects/${projectId}/credentials/${deletingCred.id}?permanent=true`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.error?.message || 'Gagal menghapus kredensial');
+      }
+      setCredentials((prev) => prev.filter((c) => c.id !== deletingCred.id));
+      setDeletingCred(null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menghapus kredensial');
+    } finally {
+      setIsDeletingCred(false);
     }
   };
 
@@ -507,6 +556,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
                       <th className="py-3 px-4">Kredensial Terikat</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4">Dibuat Pada</th>
+                      <th className="py-3 px-4 text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -539,6 +589,17 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
                           <td className="py-3.5 px-4 text-muted-foreground">
                             {new Date(a.createdAt).toLocaleDateString('id-ID')}
                           </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeletingAlias(a)}
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/20 gap-1.5"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Hapus</span>
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -557,10 +618,16 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
             <p className="text-xs text-muted-foreground">
               Kredensial Gemini API dienkripsi menggunakan AES-256-GCM. Secret tersimpan tidak pernah ditampilkan kembali.
             </p>
-            <Button size="sm" onClick={() => setIsCreateCredOpen(true)} className="gap-1.5">
-              <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Kredensial Gemini</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setIsConnectAntigravityOpen(true)} className="gap-1.5 text-sky-400 border-sky-500/30 hover:bg-sky-500/10">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Hubungkan Antigravity (OAuth)</span>
+              </Button>
+              <Button size="sm" onClick={() => setIsCreateCredOpen(true)} className="gap-1.5">
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Kredensial Gemini</span>
+              </Button>
+            </div>
           </div>
 
           {credentials.length === 0 ? (
@@ -570,9 +637,15 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 Daftarkan API key resmi Gemini dari Google AI Studio agar gateway dapat meneruskan inferensi AI.
               </p>
-              <Button size="sm" onClick={() => setIsCreateCredOpen(true)}>
-                Tambah Kredensial Gemini
-              </Button>
+              <div className="flex items-center justify-center gap-3">
+                <Button size="sm" variant="outline" onClick={() => setIsConnectAntigravityOpen(true)} className="gap-1.5 text-sky-400 border-sky-500/30 hover:bg-sky-500/10">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Hubungkan Antigravity (OAuth)</span>
+                </Button>
+                <Button size="sm" onClick={() => setIsCreateCredOpen(true)}>
+                  Tambah Kredensial Gemini
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -607,15 +680,26 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
                           {c.maxConcurrent ? `${c.maxConcurrent} slot` : 'Tak terbatas'}
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setRotatingCred(c)}
-                            className="gap-1.5"
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                            <span>Rotasi Kunci</span>
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setRotatingCred(c)}
+                              className="gap-1.5"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              <span>Rotasi Kunci</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeletingCred(c)}
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/20 gap-1.5"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Hapus</span>
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -643,6 +727,10 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
         isOpen={isCreateCredOpen}
         projectId={projectId}
         onClose={() => setIsCreateCredOpen(false)}
+        onOpenAntigravity={() => {
+          setIsCreateCredOpen(false);
+          setIsConnectAntigravityOpen(true);
+        }}
         onSuccess={(newCred) => {
           setCredentials((prev) => [newCred, ...prev]);
         }}
@@ -659,6 +747,17 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
           setCredentials((prev) =>
             prev.map((c) => (c.id === updatedCred.id ? updatedCred : c))
           );
+        }}
+        fetchWithCsrf={fetchWithCsrf}
+      />
+
+      {/* Modal: Connect Antigravity */}
+      <ConnectAntigravityModal
+        isOpen={isConnectAntigravityOpen}
+        projectId={projectId}
+        onClose={() => setIsConnectAntigravityOpen(false)}
+        onSuccess={(newCred) => {
+          setCredentials((prev) => [newCred, ...prev]);
         }}
         fetchWithCsrf={fetchWithCsrf}
       />
@@ -694,6 +793,54 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
               onClick={handleRevokeKey}
             >
               Ya, Cabut Key Sekarang
+            </Button>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Delete Model Alias Confirmation Dialog */}
+      {deletingAlias && (
+        <Dialog
+          isOpen={Boolean(deletingAlias)}
+          onClose={() => setDeletingAlias(null)}
+          title="Hapus Model Alias"
+          description={`Apakah Anda yakin ingin menghapus model alias '${deletingAlias.alias}' (${deletingAlias.upstreamModel})? Request klien ke model ini akan langsung menghasilkan error HTTP 404 model_not_found.`}
+          maxWidth="max-w-md"
+        >
+          <div className="flex justify-end gap-3 pt-3 border-t border-border">
+            <Button variant="outline" onClick={() => setDeletingAlias(null)} disabled={isDeletingAlias}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              isLoading={isDeletingAlias}
+              onClick={handleDeleteAlias}
+            >
+              Ya, Hapus Alias
+            </Button>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Delete Provider Credential Confirmation Dialog */}
+      {deletingCred && (
+        <Dialog
+          isOpen={Boolean(deletingCred)}
+          onClose={() => setDeletingCred(null)}
+          title="Hapus Kredensial Provider"
+          description={`Apakah Anda yakin ingin menghapus kredensial '${deletingCred.displayName}' (${deletingCred.provider})? Kredensial ini akan dihapus secara permanen. Model alias yang terikat pada kredensial ini tidak akan dapat melayani request (HTTP 503).`}
+          maxWidth="max-w-md"
+        >
+          <div className="flex justify-end gap-3 pt-3 border-t border-border">
+            <Button variant="outline" onClick={() => setDeletingCred(null)} disabled={isDeletingCred}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              isLoading={isDeletingCred}
+              onClick={handleDeleteCredential}
+            >
+              Ya, Hapus Kredensial
             </Button>
           </div>
         </Dialog>

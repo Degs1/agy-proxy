@@ -36,7 +36,7 @@ export function CreateApiKeyModal({
     setIsLoading(true);
 
     try {
-      let expiresAt: string | null = null;
+      let expiresAt: string | undefined = undefined;
       if (expiryDays !== 'never') {
         const d = new Date();
         d.setDate(d.getDate() + parseInt(expiryDays, 10));
@@ -47,7 +47,7 @@ export function CreateApiKeyModal({
         method: 'POST',
         body: JSON.stringify({
           name: name.trim(),
-          expiresAt,
+          ...(expiresAt ? { expiresAt } : {}),
         }),
       });
 

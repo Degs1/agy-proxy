@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Db } from 'mongodb';
 import {
-  ADMIN_SESSION_COOKIE,
+  getAdminSessionCookie,
   CSRF_HEADER_NAME,
   verifyMutationOrigin,
 } from '@/lib/auth/csrf';
@@ -52,7 +52,7 @@ export async function authenticateAdminRequest(
   }
 
   // 2. Verify Session Cookie
-  const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  const sessionCookie = getAdminSessionCookie(request);
   if (!sessionCookie) {
     return {
       valid: false,

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db/client';
 import {
   ADMIN_SESSION_COOKIE,
+  DEV_ADMIN_SESSION_COOKIE,
+  getAdminSessionCookie,
   CSRF_HEADER_NAME,
   verifyMutationOrigin,
 } from '@/lib/auth/csrf';
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 2. Extract session cookie
-  const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  const sessionCookie = getAdminSessionCookie(request);
   if (!sessionCookie) {
     return NextResponse.json(
       {
@@ -86,9 +88,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   );
 
-  // Clear session cookie
+  // Clear session cookies (both production and dev)
   response.cookies.set({
     name: ADMIN_SESSION_COOKIE,
+    value: '',
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 0,
+  });
+  response.cookies.set({
+    name: DEV_ADMIN_SESSION_COOKIE,
     value: '',
     httpOnly: true,
     secure: cookieSecure,

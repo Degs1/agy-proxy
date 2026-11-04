@@ -6,6 +6,7 @@ import {
   getCredentialById,
   updateCredential,
   revokeCredential,
+  deleteCredential,
 } from '@/lib/credentials/service';
 import {
   updateCredentialSchema,
@@ -157,8 +158,12 @@ export async function DELETE(
     );
   }
 
-  const revoked = await revokeCredential(db, id, credId);
-  if (!revoked) {
+  const isPermanent = request.nextUrl.searchParams.get('permanent') === 'true';
+  const success = isPermanent
+    ? await deleteCredential(db, id, credId)
+    : await revokeCredential(db, id, credId);
+
+  if (!success) {
     return NextResponse.json(
       { error: { code: 'credential_not_found', message: `Credential ${credId} not found` } },
       { status: 404, headers: { 'Cache-Control': 'no-store' } }
@@ -168,7 +173,9 @@ export async function DELETE(
   return NextResponse.json(
     {
       success: true,
-      message: `Credential ${credId} has been revoked`,
+      message: isPermanent
+        ? `Credential ${credId} has been permanently deleted`
+        : `Credential ${credId} has been revoked`,
     },
     { status: 200, headers: { 'Cache-Control': 'no-store' } }
   );

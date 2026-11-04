@@ -9,7 +9,7 @@ import {
   dispatchWithAdmission,
   AdmissionRequestInput,
 } from '@/lib/limiter';
-import { resolveModelAliasCredential } from '@/lib/credentials/resolver';
+import { resolveModelAliasCredential, createAntigravityRefreshTokenCallback } from '@/lib/credentials/resolver';
 import {
   getProviderAdapter,
   AdapterError,
@@ -298,6 +298,7 @@ export async function POST(request: NextRequest | Request): Promise<NextResponse
             secret: resolution.secret,
             upstreamModel: resolution.upstreamModel,
             signal: combinedSignal,
+            onRefreshToken: createAntigravityRefreshTokenCallback(db, resolution.credential, resolution.secret),
           };
 
           return await adapter.executeNonStream(adapterReq, adapterCtx);

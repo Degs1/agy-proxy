@@ -3,6 +3,7 @@ import { ApiKeyDocument } from '@/lib/db/schema';
 
 /**
  * Validation schema for creating a project API key.
+ * Allows optional or null expiresAt for permanent keys.
  */
 export const createApiKeySchema = z.object({
   name: z
@@ -17,7 +18,8 @@ export const createApiKeySchema = z.object({
     .refine((date) => date.getTime() > Date.now(), {
       message: 'expiresAt must be in the future',
     })
-    .optional(),
+    .nullish()
+    .transform((val) => (val ? val : undefined)),
 });
 
 export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;

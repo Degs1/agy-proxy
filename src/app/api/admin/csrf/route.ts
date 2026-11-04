@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db/client';
 import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_PRE_CSRF_COOKIE,
+  getAdminPreCsrfCookieName,
+  getAdminSessionCookie,
   createAnonymousCsrf,
   verifyCsrfOriginEvidence,
 } from '@/lib/auth/csrf';
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const { cookieSecure } = getAuthConfig();
-  const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  const sessionCookie = getAdminSessionCookie(request);
 
   try {
     const db = await getDatabase();
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Set signed pre-session cookie with limited lifetime (15 mins)
     response.cookies.set({
-      name: ADMIN_PRE_CSRF_COOKIE,
+      name: getAdminPreCsrfCookieName(),
       value: anonPair.cookieValue,
       httpOnly: true,
       secure: cookieSecure,

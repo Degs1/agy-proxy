@@ -43,6 +43,7 @@ describe('Model Alias Configuration & Strict Credential Binding API (Requirement
   let credAActiveGemini: ObjectId;
   let credADisabledGemini: ObjectId;
   let credANonGemini: ObjectId;
+  let credAAntigravity: ObjectId;
   let credBActiveGemini: ObjectId;
 
   beforeAll(async () => {
@@ -151,6 +152,22 @@ describe('Model Alias Configuration & Strict Credential Binding API (Requirement
       status: 'active',
     });
     credANonGemini = credANonGem._id!;
+
+    // 3b. Project A: Antigravity provider credential
+    const credAAnti = await createCredential(db, projectAId, {
+      displayName: 'Project A Antigravity OAuth',
+      provider: 'antigravity',
+      credentialType: 'oauth',
+      secret: JSON.stringify({
+        accessToken: 'ya29.test-access-token',
+        refreshToken: '1//test-refresh-token',
+        expiresAt: Date.now() + 3600000,
+        scope: 'https://www.googleapis.com/auth/cloud-platform',
+        tokenType: 'Bearer',
+      }),
+      status: 'active',
+    });
+    credAAntigravity = credAAnti._id!;
 
     // 4. Project B: Active Gemini credential (belongs to Project B!)
     const credB = await createCredential(db, projectBId, {
@@ -298,6 +315,26 @@ describe('Model Alias Configuration & Strict Credential Binding API (Requirement
       const json = await res.json();
       expect(json.error.code).toBe('credential_inactive');
       expect(json.error.message).toContain('Only active credentials can be bound to an alias');
+    });
+
+    it('ALLOWS Antigravity provider credential binding with 201 Created', async () => {
+      const req = createAuthRequest(
+        'POST',
+        `http://localhost:3000/api/admin/projects/${projectAId}/aliases`,
+        {
+          alias: 'claude-3-5',
+          upstreamModel: 'claude-3-5-sonnet',
+          boundCredentialId: credAAntigravity.toString(),
+          status: 'active',
+        }
+      );
+
+      const res = await createAliasRoute(req, { params: { id: projectAId.toString() } });
+      expect(res.status).toBe(201);
+      const json = await res.json();
+      expect(json.alias.alias).toBe('claude-3-5');
+      expect(json.alias.upstreamModel).toBe('claude-3-5-sonnet');
+      expect(json.alias.boundCredentialId).toBe(credAAntigravity.toString());
     });
 
     it('REJECTS non-Gemini provider credential binding with 422 Unprocessable (non_gemini_provider)', async () => {

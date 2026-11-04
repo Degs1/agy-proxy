@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db/client';
-import { ADMIN_SESSION_COOKIE } from '@/lib/auth/csrf';
+import { getAdminSessionCookie } from '@/lib/auth/csrf';
 import { verifyAdminSession } from '@/lib/auth/session';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  const sessionCookie = getAdminSessionCookie(request);
   if (!sessionCookie) {
     return NextResponse.json(
       {

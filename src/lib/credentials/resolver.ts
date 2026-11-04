@@ -8,6 +8,7 @@ import {
   decryptCredential,
   CredentialEncryptionError,
 } from '@/lib/crypto/credential-encryption';
+import { ensureValidAntigravityToken } from '@/lib/antigravity/token-manager';
 
 export interface CredentialResolutionFailure {
   success: false;
@@ -27,6 +28,28 @@ export interface CredentialResolutionSuccess {
 export type CredentialResolutionResult =
   | CredentialResolutionFailure
   | CredentialResolutionSuccess;
+
+/**
+ * Creates an onRefreshToken callback for the adapter when using Antigravity OAuth.
+ */
+export function createAntigravityRefreshTokenCallback(
+  db: Db,
+  credDoc: ProviderCredentialDocument,
+  currentSecret: string
+): (() => Promise<string>) | undefined {
+  if (credDoc.provider !== 'antigravity' || credDoc.credentialType !== 'oauth') {
+    return undefined;
+  }
+  return async () => {
+    const { secret } = await ensureValidAntigravityToken(
+      db,
+      credDoc,
+      currentSecret,
+      { forceRefresh: true }
+    );
+    return secret;
+  };
+}
 
 /**
  * Resolves the credential bound to a model alias for gateway invocation.
@@ -115,6 +138,21 @@ export async function resolveModelAliasCredential(
       errorCode: 'provider_unavailable',
       message: 'Provider credential decryption failed; provider cannot be safely reached',
     };
+  }
+
+  // 6. If provider is Antigravity OAuth, proactively verify and refresh token if near expiry
+  if (credDoc.provider === 'antigravity' && credDoc.credentialType === 'oauth') {
+    try {
+      const { secret } = await ensureValidAntigravityToken(db, credDoc, decryptedSecret);
+      decryptedSecret = secret;
+    } catch (err: unknown) {
+      return {
+        success: false,
+        statusCode: 503,
+        errorCode: 'provider_unavailable',
+        message: 'Antigravity OAuth token validation or refresh failed',
+      };
+    }
   }
 
   return {
