@@ -59,3 +59,66 @@ export interface ApiError {
   retryAfter?: number;
   issues?: unknown[];
 }
+
+export interface MonitoringProjectSummary {
+  projectId: string;
+  projectName: string;
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface MonitoringProviderSummary {
+  provider: string;
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface MonitoringSummary {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageDurationMs: number;
+  totalTokens: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  projects: MonitoringProjectSummary[];
+  providers: MonitoringProviderSummary[];
+  preauthRejections: {
+    total: number;
+  };
+}
+
+export interface MonitoringLogItem {
+  id: string;
+  requestId?: string | null;
+  projectId: string | null;
+  projectName?: string | null;
+  model: string | null;
+  provider: string | null;
+  statusCode: number;
+  durationMs: number;
+  result: string;
+  errorCode: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
+  streaming: boolean;
+  createdAt: string;
+}
+
+export interface MonitoringDetails {
+  logs: MonitoringLogItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}

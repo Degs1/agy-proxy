@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import { AdminUser } from '@/lib/frontend/types';
 
-interface AuthContextValue {
+export interface AuthContextValue {
   admin: AdminUser | null;
   csrfToken: string | null;
   isLoading: boolean;
@@ -21,7 +21,7 @@ interface AuthContextValue {
   fetchWithCsrf: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
-const AdminAuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AdminAuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   // In-memory state only - ZERO storage in localStorage / sessionStorage

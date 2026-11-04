@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   FolderKanban,
   LayoutDashboard,
+  Activity,
   Shield,
   KeyRound,
   LogOut,
@@ -32,6 +33,11 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
       label: 'Overview',
       href: '/admin/overview',
       icon: LayoutDashboard,
+    },
+    {
+      label: 'Monitoring',
+      href: '/admin/monitoring',
+      icon: Activity,
     },
   ];
 
