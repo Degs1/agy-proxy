@@ -20,7 +20,7 @@ import { handleStreamingChatCompletion } from '@/lib/gateway/stream-handler';
 import { recordUsageLog, recordPreauthRejection } from '@/lib/monitoring';
 
 export const runtime = 'nodejs';
-export const maxDuration = 660;
+export const maxDuration = 300; // 5 menit (Maksimal untuk Vercel Hobby / Free plan)
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest | Request): Promise<NextResponse | Response> {
