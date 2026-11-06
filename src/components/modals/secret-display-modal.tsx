@@ -83,7 +83,7 @@ export function SecretDisplayModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="secret-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80"
       // Lock backdrop click
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -93,7 +93,7 @@ export function SecretDisplayModal({
       }}
     >
       <div
-        className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-2xl text-card-foreground animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-lg rounded-lg rounded-modal border border-border/80 bg-card p-6 shadow-md text-card-foreground animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-2">

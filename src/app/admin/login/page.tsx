@@ -47,10 +47,10 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 sm:p-8 shadow-2xl text-card-foreground">
+      <div className="w-full max-w-md rounded-lg rounded-modal border border-border/80 bg-card p-6 sm:p-8 shadow-md text-card-foreground">
         {/* Brand header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-12 h-12 rounded-md bg-primary flex items-center justify-center text-primary-foreground mb-3 shadow-lg shadow-primary/20">
+          <div className="w-12 h-12 rounded-md bg-primary flex items-center justify-center text-primary-foreground mb-3 border border-border/80">
             <Shield className="w-6 h-6" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">Portal Administrasi</h1>

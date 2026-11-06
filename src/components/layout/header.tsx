@@ -23,7 +23,7 @@ export function Header({ onOpenMobileMenu, title }: HeaderProps) {
   }, []);
 
   return (
-    <header className="h-16 border-b border-border bg-card px-4 lg:px-8 flex items-center justify-between gap-4 sticky top-0 z-30">
+    <header className="h-16 border-b border-border/80 bg-card px-4 lg:px-8 flex items-center justify-between gap-4 sticky top-0 z-30">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -43,7 +43,7 @@ export function Header({ onOpenMobileMenu, title }: HeaderProps) {
         </Badge>
 
         {/* UTC Clock */}
-        <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1 rounded-md border border-border">
+        <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1 rounded-md border border-border/80">
           <Clock className="w-3.5 h-3.5" />
           <span>{utcTime || 'UTC'}</span>
         </div>

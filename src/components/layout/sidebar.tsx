@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Activity,
   Shield,
-  KeyRound,
   LogOut,
   X,
 } from 'lucide-react';
@@ -46,21 +45,22 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
       {/* Mobile Backdrop */}
       {isOpenOnMobile && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          data-testid="sidebar-mobile-backdrop"
+          className="fixed inset-0 z-40 bg-slate-950/80 lg:hidden"
           onClick={onCloseMobile}
         />
       )}
 
       {/* Sidebar container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-card border-r border-border transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-card border-r border-border/80 transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
           isOpenOnMobile ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand & logo header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-border">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-border/80">
           <Link href="/admin/projects" className="flex items-center gap-2.5" onClick={onCloseMobile}>
-            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-md shadow-primary/20">
+            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold border border-border/80">
               <Shield className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
@@ -72,7 +72,7 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
             <button
               type="button"
               onClick={onCloseMobile}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
               aria-label="Tutup navigasi"
             >
               <X className="w-5 h-5" />
@@ -81,7 +81,7 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
         </div>
 
         {/* Navigation list */}
-        <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav aria-label="Navigasi Utama" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           <div className="px-3 mb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             Manajemen
           </div>
@@ -93,10 +93,11 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
                 key={item.href}
                 href={item.href}
                 onClick={onCloseMobile}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors min-h-[44px] ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors min-h-[44px] border ${
                   isActive
-                    ? 'bg-primary/10 text-primary font-semibold'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                    ? 'bg-primary/10 text-primary font-semibold border-primary/20'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -104,10 +105,10 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
               </Link>
             );
           })}
-        </div>
+        </nav>
 
         {/* Admin profile & logout footer */}
-        <div className="p-4 border-t border-border bg-card/50">
+        <div className="p-4 border-t border-border/80 bg-card/50">
           <div className="flex items-center justify-between gap-2 mb-3">
             <div className="truncate">
               <p className="text-xs font-medium text-foreground truncate">{admin?.email || 'Administrator'}</p>

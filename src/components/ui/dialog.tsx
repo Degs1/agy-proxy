@@ -43,7 +43,7 @@ export function Dialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget && !preventDismiss) {
           onClose();
@@ -51,7 +51,7 @@ export function Dialog({
       }}
     >
       <div
-        className={`w-full ${maxWidth} rounded-lg border border-border bg-card p-6 shadow-2xl text-card-foreground animate-in zoom-in-95 duration-150`}
+        className={`w-full ${maxWidth} rounded-lg rounded-modal border border-border/80 bg-card p-6 shadow-md text-card-foreground animate-in zoom-in-95 duration-150`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-4">
