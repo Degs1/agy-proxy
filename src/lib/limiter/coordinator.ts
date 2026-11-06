@@ -770,6 +770,13 @@ export async function acquireDispatchPermission(
     };
   }
 
+  if (initialDecision.dispatchStatus !== 'undispatched' || initialDecision.status !== 'running') {
+    return {
+      granted: false,
+      reason: 'already_dispatching_or_fenced',
+    };
+  }
+
   // 2. Pause hook: EXACTLY after ownership check and BEFORE atomic dispatch transition
   if (hooks?.beforeDispatchTransition) {
     await hooks.beforeDispatchTransition(initialClaim, initialDecision);

@@ -555,14 +555,18 @@ describe('TASK-045: Pengujian Klaim & Admission Dua Proses Terdistribusi', () =>
     expect(decision?.dispatchStatus).toBe('dispatching');
 
     // Process 2 attempts to acquire dispatch permission on the same decision
-    const p2Dispatch = await acquireDispatchPermission(db, {
-      projectId: testProjectId,
-      apiKeyId: testApiKeyId,
-      requestId,
-      attemptId: decision.attemptId,
-      generation: 1,
-      decisionId: decision._id,
-    });
+    const p2Dispatch = await acquireDispatchPermission(
+      db,
+      {
+        projectId: testProjectId,
+        apiKeyId: testApiKeyId,
+        requestId,
+        attemptId: decision.attemptId,
+        generation: 1,
+        decisionId: decision._id,
+      },
+      { clock: { now: () => t0 } }
+    );
 
     // Process 2 MUST be denied dispatch!
     expect(p2Dispatch.granted).toBe(false);

@@ -63,7 +63,7 @@ function LoginForm() {
         {isLocked ? (
           <div
             role="alert"
-            className="mb-5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3.5 text-xs text-yellow-500 flex items-start gap-2.5 animate-in fade-in"
+            className="mb-5 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3.5 text-xs text-yellow-500 flex items-start gap-2.5 animate-in fade-in"
           >
             <Clock className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
@@ -77,7 +77,7 @@ function LoginForm() {
         ) : errorMsg ? (
           <div
             role="alert"
-            className="mb-5 rounded-lg border border-red-500/40 bg-red-500/10 p-3.5 text-xs text-red-400 flex items-start gap-2.5 animate-in fade-in"
+            className="mb-5 rounded-md border border-red-500/40 bg-red-500/10 p-3.5 text-xs text-red-400 flex items-start gap-2.5 animate-in fade-in"
           >
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -101,7 +101,7 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@internal.net"
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 min-h-[44px]"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 min-h-[44px]"
             />
           </div>
 
@@ -118,7 +118,7 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 min-h-[44px]"
+                className="w-full rounded-md border border-border bg-muted px-3 py-2.5 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 min-h-[44px]"
               />
               <button
                 type="button"

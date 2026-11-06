@@ -429,18 +429,22 @@ describe('TASK-047: Uji Retry, Idempotensi, dan Isolasi Izin Dispatch', () => {
     });
     expect(decision?.dispatchStatus).toBe('dispatching');
 
-    // Simulate Worker 1 crashing or lease expiring
-    await reconcileExpiredLeases(db, testProjectId);
+    // Simulate background sweeper running concurrently
+    await reconcileExpiredLeases(db, testProjectId, { clock: { now: () => t0 } });
 
     // Worker 2 arrives and tries to acquire dispatch permission or run admission
-    const p2Dispatch = await acquireDispatchPermission(db, {
-      projectId: testProjectId,
-      apiKeyId: testApiKeyId1,
-      requestId,
-      attemptId: decision!.attemptId,
-      generation: 1,
-      decisionId: decision!._id,
-    });
+    const p2Dispatch = await acquireDispatchPermission(
+      db,
+      {
+        projectId: testProjectId,
+        apiKeyId: testApiKeyId1,
+        requestId,
+        attemptId: decision!.attemptId,
+        generation: 1,
+        decisionId: decision!._id,
+      },
+      { clock: { now: () => t0 } }
+    );
 
     // Worker 2 MUST NOT be granted dispatch!
     expect(p2Dispatch.granted).toBe(false);

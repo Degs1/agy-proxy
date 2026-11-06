@@ -460,14 +460,18 @@ describe('TASK-049: Siklus Lease Concurrency & Keputusan Terminal', () => {
     if (!adm.admitted) return;
 
     // Transition to dispatching
-    const dispatch = await acquireDispatchPermission(db, {
-      projectId: testProjectId,
-      apiKeyId: testApiKeyId,
-      requestId: 'req-dispatching-protection-001',
-      attemptId: adm.attemptId,
-      generation: adm.generation,
-      decisionId: adm.decisionId,
-    });
+    const dispatch = await acquireDispatchPermission(
+      db,
+      {
+        projectId: testProjectId,
+        apiKeyId: testApiKeyId,
+        requestId: 'req-dispatching-protection-001',
+        attemptId: adm.attemptId,
+        generation: adm.generation,
+        decisionId: adm.decisionId,
+      },
+      { clock: { now: () => t0 } }
+    );
     expect(dispatch.granted).toBe(true);
 
     // Verify it is dispatching
