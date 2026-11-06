@@ -60,7 +60,7 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
         {/* Brand & logo header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-border">
           <Link href="/admin/projects" className="flex items-center gap-2.5" onClick={onCloseMobile}>
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-md shadow-primary/20">
+            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-md shadow-primary/20">
               <Shield className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
@@ -93,7 +93,7 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
                 key={item.href}
                 href={item.href}
                 onClick={onCloseMobile}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors min-h-[44px] ${
                   isActive
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
@@ -118,7 +118,7 @@ export function Sidebar({ isOpenOnMobile = false, onCloseMobile }: SidebarProps)
           <button
             type="button"
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors min-h-[44px] cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-md text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors min-h-[44px] cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Keluar Sesi</span>

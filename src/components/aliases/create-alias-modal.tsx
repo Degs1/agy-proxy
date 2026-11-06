@@ -100,7 +100,7 @@ export function CreateAliasModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div role="alert" className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
+          <div role="alert" className="p-3 rounded-md border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -117,7 +117,7 @@ export function CreateAliasModal({
             value={alias}
             onChange={(e) => setAlias(e.target.value)}
             placeholder="Contoh: gemini-default atau claude-3-5"
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
           />
           <p className="text-[11px] text-muted-foreground mt-1">
             Nama model yang akan dikirim klien pada payload `/v1/chat/completions`.
@@ -141,7 +141,7 @@ export function CreateAliasModal({
                   setUpstreamModel(e.target.value);
                 }
               }}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
             >
               <optgroup label="Model Gemini (Google AI Studio)">
                 <option value="gemini-2.5-flash">gemini-2.5-flash (Direkomendasikan - Default)</option>
@@ -165,7 +165,7 @@ export function CreateAliasModal({
                 value={upstreamModel}
                 onChange={(e) => setUpstreamModel(e.target.value)}
                 placeholder="Contoh: claude-3-5-sonnet atau gemini-2.5-flash"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono"
               />
             )}
           </div>
@@ -179,7 +179,7 @@ export function CreateAliasModal({
             Kredensial Gemini Terikat / Antigravity (Project Sama) <span className="text-red-400">*</span>
           </label>
           {eligibleCredentials.length === 0 ? (
-            <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-xs text-yellow-500">
+            <div className="p-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 text-xs text-yellow-500">
               Belum ada kredensial Gemini atau Antigravity aktif pada project ini. Daftarkan kredensial terlebih dahulu di tab Provider Credentials sebelum mengikat alias.
             </div>
           ) : (
@@ -188,7 +188,7 @@ export function CreateAliasModal({
               required
               value={boundCredentialId}
               onChange={(e) => setBoundCredentialId(e.target.value)}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">-- Pilih Kredensial Gemini / Antigravity Aktif --</option>
               {eligibleCredentials.map((cred) => (

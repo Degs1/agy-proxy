@@ -86,7 +86,7 @@ export function CreateCredentialModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div role="alert" className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
+          <div role="alert" className="p-3 rounded-md border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -100,7 +100,7 @@ export function CreateCredentialModal({
             id="create-cred-provider"
             value={provider}
             onChange={(e) => setProvider(e.target.value as 'gemini')}
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="gemini">Google Gemini API resmi (Aktif MVP)</option>
             <option value="antigravity" disabled>
@@ -132,7 +132,7 @@ export function CreateCredentialModal({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Contoh: Gemini Pro Primary Key"
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
@@ -148,7 +148,7 @@ export function CreateCredentialModal({
               value={secret}
               onChange={(e) => setSecret(e.target.value)}
               placeholder="AIzaSy..."
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
@@ -168,7 +168,7 @@ export function CreateCredentialModal({
             value={maxConcurrent}
             onChange={(e) => setMaxConcurrent(e.target.value)}
             placeholder="Tidak terbatas (default)"
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 

@@ -40,9 +40,27 @@ const config: Config = {
         input: 'rgb(var(--input) / <alpha-value>)',
         ring: 'rgb(var(--ring) / <alpha-value>)',
       },
+      borderRadius: {
+        badge: 'var(--radius-badge, 4px)',
+        control: 'var(--radius-control, 6px)',
+        card: 'var(--radius-card, 8px)',
+        modal: 'var(--radius-modal, 8px)',
+      },
       fontFamily: {
-        sans: ['Inter', 'IBM Plex Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        sans: [
+          ['Inter', 'IBM Plex Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          {
+            fontFeatureSettings: '"cv02", "cv03", "cv04", "cv11", "tnum"',
+            fontVariationSettings: 'normal',
+          },
+        ],
+        mono: [
+          ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          {
+            fontFeatureSettings: '"tnum"',
+            fontVariationSettings: 'normal',
+          },
+        ],
       },
     },
   },

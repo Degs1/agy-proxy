@@ -108,7 +108,7 @@ function ProjectsContent() {
       </div>
 
       {/* Filters bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-xl border border-border bg-card">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card">
         <div className="relative flex-1 max-w-sm">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -116,7 +116,7 @@ function ProjectsContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari nama project..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-border bg-muted text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring min-h-[44px]"
+            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-border bg-muted text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring min-h-[44px]"
           />
         </div>
 
@@ -128,7 +128,7 @@ function ProjectsContent() {
             id="filter-status-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'disabled')}
-            className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-h-[44px]"
+            className="rounded-md border border-border bg-muted px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring min-h-[44px]"
           >
             <option value="all">Semua Status</option>
             <option value="active">Hanya Aktif</option>
@@ -140,7 +140,7 @@ function ProjectsContent() {
       {/* Content Area: 8 States Handling */}
       {isLoading ? (
         /* Loading Shimmer State */
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="p-4 space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-center justify-between gap-4 py-2 border-b border-border/50">
@@ -148,15 +148,15 @@ function ProjectsContent() {
                   <Skeleton className="h-4 w-48" />
                   <Skeleton className="h-3 w-72" />
                 </div>
-                <Skeleton className="h-6 w-20 rounded-full" />
-                <Skeleton className="h-8 w-24 rounded-lg" />
+                <Skeleton className="h-6 w-20 rounded-[4px]" />
+                <Skeleton className="h-8 w-24 rounded-md" />
               </div>
             ))}
           </div>
         </div>
       ) : error ? (
         /* Error State */
-        <div role="alert" className="p-8 rounded-xl border border-red-500/30 bg-red-500/10 text-center space-y-3">
+        <div role="alert" className="p-8 rounded-lg border border-red-500/30 bg-red-500/10 text-center space-y-3">
           <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
           <h3 className="text-sm font-semibold text-red-400">Gagal Memuat Data Project</h3>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">{error}</p>
@@ -167,8 +167,8 @@ function ProjectsContent() {
         </div>
       ) : filteredProjects.length === 0 ? (
         /* Empty State */
-        <div className="p-12 rounded-xl border border-border bg-card text-center space-y-4">
-          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto text-muted-foreground">
+        <div className="p-12 rounded-lg border border-border bg-card text-center space-y-4">
+          <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center mx-auto text-muted-foreground">
             <FolderKanban className="w-6 h-6" />
           </div>
           <div className="space-y-1 max-w-sm mx-auto">
@@ -201,7 +201,7 @@ function ProjectsContent() {
         </div>
       ) : (
         /* Table of Projects (Responsive: stacked on mobile, full table on tablet+) */
-        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+        <div className="rounded-lg border border-border bg-card overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-muted/80 text-muted-foreground border-b border-border font-medium">
@@ -323,7 +323,7 @@ function ProjectsContent() {
           maxWidth="max-w-md"
         >
           <div className="space-y-4">
-            <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-400">
+            <div className="p-3 rounded-md border border-red-500/30 bg-red-500/10 text-xs text-red-400">
               Ketik nama project <strong>{deletingProject.name}</strong> di bawah ini untuk mengonfirmasi:
             </div>
             <input
@@ -331,7 +331,7 @@ function ProjectsContent() {
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder={deletingProject.name}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
             <div className="flex justify-end gap-3 pt-3 border-t border-border">
               <Button

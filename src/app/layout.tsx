@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Antigravity Gateway — Console',
+  title: 'Antigravity Gateway: Console',
   description: 'Private Multi-Account AI API Gateway Administration Console',
 };
 

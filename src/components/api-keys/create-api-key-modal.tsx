@@ -95,7 +95,7 @@ export function CreateApiKeyModal({
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div role="alert" className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
+            <div role="alert" className="p-3 rounded-md border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -112,7 +112,7 @@ export function CreateApiKeyModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Contoh: Web Backend Production"
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -124,7 +124,7 @@ export function CreateApiKeyModal({
               id="create-key-expiry"
               value={expiryDays}
               onChange={(e) => setExpiryDays(e.target.value)}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="never">Tidak Kedaluwarsa</option>
               <option value="30">30 Hari</option>

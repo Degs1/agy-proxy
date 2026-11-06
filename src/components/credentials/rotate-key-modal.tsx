@@ -66,13 +66,13 @@ export function RotateKeyModal({
     >
       <div className="space-y-4">
         {error && (
-          <div role="alert" className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
+          <div role="alert" className="p-3 rounded-md border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="p-3.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-xs text-yellow-400 flex items-start gap-2.5">
+        <div className="p-3.5 rounded-md border border-yellow-500/30 bg-yellow-500/10 text-xs text-yellow-400 flex items-start gap-2.5">
           <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-yellow-500" />
           <div className="space-y-1">
             <p className="font-medium text-foreground">Konfirmasi Re-Enkripsi AES-256-GCM:</p>
@@ -84,7 +84,7 @@ export function RotateKeyModal({
           </div>
         </div>
 
-        <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg font-mono">
+        <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md font-mono">
           <div>Kredensial: {credential.displayName}</div>
           <div>Provider: {credential.provider}</div>
           <div>Versi Kunci Saat Ini: v{credential.keyVersion}</div>

@@ -202,12 +202,12 @@ export function ConnectAntigravityModal({
                 disabled={Boolean(authUrl)}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Google Antigravity Primary"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
             {!authUrl ? (
-              <div className="p-4 rounded-xl border border-sky-500/30 bg-sky-500/5 space-y-3">
+              <div className="p-4 rounded-lg border border-sky-500/30 bg-sky-500/5 space-y-3">
                 <div className="flex items-center gap-2 text-sky-400 font-medium text-xs">
                   <Sparkles className="w-4 h-4" />
                   <span>Alur Otentikasi Cloud Code / Antigravity</span>
@@ -226,7 +226,7 @@ export function ConnectAntigravityModal({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="p-4 rounded-xl border border-border bg-muted/50 space-y-3 text-center">
+                <div className="p-4 rounded-lg border border-border bg-muted/50 space-y-3 text-center">
                   <div className="flex items-center justify-center gap-2 text-sky-400 text-xs font-medium">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Menunggu Persetujuan Login di Browser...</span>
@@ -241,7 +241,7 @@ export function ConnectAntigravityModal({
                       href={authUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-colors"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-colors"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>Buka Halaman Login Google</span>
@@ -261,7 +261,7 @@ export function ConnectAntigravityModal({
                         value={manualCode}
                         onChange={(e) => setManualCode(e.target.value)}
                         placeholder="http://localhost:51121/oauth-callback?code=4/0A..."
-                        className="flex-1 rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="flex-1 rounded-md border border-border bg-muted px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                       <Button
                         type="submit"

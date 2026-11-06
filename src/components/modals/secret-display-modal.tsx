@@ -93,11 +93,11 @@ export function SecretDisplayModal({
       }}
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl text-card-foreground animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-2xl text-card-foreground animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+          <div className="p-2 rounded-md bg-primary/10 text-primary">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
@@ -119,7 +119,7 @@ export function SecretDisplayModal({
               type="text"
               readOnly
               value={internalSecret}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 pr-28 text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-ring select-all"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2.5 pr-28 text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-ring select-all"
             />
             <button
               type="button"
@@ -148,7 +148,7 @@ export function SecretDisplayModal({
         {/* Warning Alert Banner */}
         <div
           role="alert"
-          className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3.5 text-xs text-yellow-500 mb-5 flex items-start gap-2.5"
+          className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3.5 text-xs text-yellow-500 mb-5 flex items-start gap-2.5"
         >
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
@@ -179,7 +179,7 @@ export function SecretDisplayModal({
             type="button"
             disabled={!confirmed}
             onClick={handleClose}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all min-h-[44px] ${
               confirmed
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer focus:ring-2 focus:ring-ring'
                 : 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'

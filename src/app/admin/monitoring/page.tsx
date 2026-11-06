@@ -208,7 +208,7 @@ function MonitoringContent() {
 
       {/* Error Banner */}
       {errorMessage && (
-        <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive flex items-center justify-between gap-3">
+        <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 text-xs">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>Gagal memuat data monitoring: {errorMessage}</span>
@@ -229,7 +229,7 @@ function MonitoringContent() {
         {/* Card 1: Total Requests */}
         <div
           data-testid="metric-total-requests"
-          className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-2"
+          className="p-5 rounded-lg border border-border bg-card shadow-sm space-y-2"
         >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">Total Permintaan</span>
@@ -260,7 +260,7 @@ function MonitoringContent() {
         {/* Card 2: Average Latency */}
         <div
           data-testid="metric-avg-latency"
-          className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-2"
+          className="p-5 rounded-lg border border-border bg-card shadow-sm space-y-2"
         >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">Rata-rata Latensi</span>
@@ -281,7 +281,7 @@ function MonitoringContent() {
         {/* Card 3: Measured Tokens */}
         <div
           data-testid="metric-total-tokens"
-          className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-2"
+          className="p-5 rounded-lg border border-border bg-card shadow-sm space-y-2"
         >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">Penggunaan Token Terukur</span>
@@ -308,7 +308,7 @@ function MonitoringContent() {
         {/* Card 4: Preauth Rejections */}
         <div
           data-testid="metric-preauth-rejections"
-          className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-2"
+          className="p-5 rounded-lg border border-border bg-card shadow-sm space-y-2"
         >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">Penolakan Pra-Autentikasi</span>
@@ -333,7 +333,7 @@ function MonitoringContent() {
       {/* Pre-auth Rejection Isolation Panel */}
       <div
         data-testid="preauth-isolation-panel"
-        className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-5 shadow-sm space-y-3"
+        className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-5 shadow-sm space-y-3"
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -376,7 +376,7 @@ function MonitoringContent() {
         {/* Project Breakdown */}
         <div
           data-testid="project-breakdown-table"
-          className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4"
+          className="rounded-lg border border-border bg-card p-5 shadow-sm space-y-4"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -439,7 +439,7 @@ function MonitoringContent() {
         {/* Provider Breakdown */}
         <div
           data-testid="provider-breakdown-table"
-          className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4"
+          className="rounded-lg border border-border bg-card p-5 shadow-sm space-y-4"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -501,7 +501,7 @@ function MonitoringContent() {
       </div>
 
       {/* Detailed Request Logs */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border bg-card p-5 shadow-sm space-y-4">
         {/* Header & Filter Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-border pb-4">
           <div>
@@ -513,7 +513,7 @@ function MonitoringContent() {
 
           {/* Toggle Type buttons */}
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-lg border border-border bg-muted/30 p-1">
+            <div className="inline-flex rounded-md border border-border bg-muted/30 p-1">
               <button
                 type="button"
                 onClick={() => {
@@ -562,7 +562,7 @@ function MonitoringContent() {
                   setSelectedProjectId(e.target.value);
                   setOffset(0);
                 }}
-                className="w-full h-10 px-3 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+                className="w-full h-10 px-3 rounded-md border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
               >
                 <option value="">Semua Project</option>
                 {projects.map((p) => (
@@ -586,7 +586,7 @@ function MonitoringContent() {
                   setSelectedProvider(e.target.value);
                   setOffset(0);
                 }}
-                className="w-full h-10 px-3 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+                className="w-full h-10 px-3 rounded-md border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
               >
                 <option value="">Semua Provider</option>
                 {Array.from(
@@ -612,7 +612,7 @@ function MonitoringContent() {
                   setSelectedStatus(e.target.value);
                   setOffset(0);
                 }}
-                className="w-full h-10 px-3 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+                className="w-full h-10 px-3 rounded-md border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
               >
                 <option value="">Semua Status</option>
                 <option value="success">Sukses (2xx)</option>

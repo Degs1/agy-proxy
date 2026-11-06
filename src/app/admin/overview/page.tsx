@@ -62,7 +62,7 @@ function OverviewContent() {
       {/* 4 Bento Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Projects */}
-        <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-2">
+        <div className="p-5 rounded-lg border border-border bg-card shadow-sm space-y-2">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">Total Project</span>
             <FolderKanban className="w-4 h-4 text-primary" />
@@ -79,7 +79,7 @@ function OverviewContent() {
         </div>
 
         {/* Card 2: Active Provider */}
-        <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-2">
+        <div className="p-5 rounded-lg border border-border bg-card shadow-sm space-y-2">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">AI Provider Aktif</span>
             <Cpu className="w-4 h-4 text-emerald-400" />
@@ -96,7 +96,7 @@ function OverviewContent() {
         </div>
 
         {/* Card 3: Gateway Health */}
-        <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-2">
+        <div className="p-5 rounded-lg border border-border bg-card shadow-sm space-y-2">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">Koneksi Database</span>
             <Activity className="w-4 h-4 text-emerald-400" />
@@ -108,7 +108,7 @@ function OverviewContent() {
         </div>
 
         {/* Card 4: Global Pre-Auth Rejections */}
-        <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-2">
+        <div className="p-5 rounded-lg border border-border bg-card shadow-sm space-y-2">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">Penolakan Pra-Autentikasi</span>
             <ShieldAlert className="w-4 h-4 text-yellow-500" />
@@ -122,7 +122,7 @@ function OverviewContent() {
       </div>
 
       {/* Projects Quick View */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold text-foreground">Daftar Project Terdaftar</h2>

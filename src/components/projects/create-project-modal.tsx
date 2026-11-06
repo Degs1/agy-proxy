@@ -81,7 +81,7 @@ export function CreateProjectModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div role="alert" className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
+          <div role="alert" className="p-3 rounded-md border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -98,7 +98,7 @@ export function CreateProjectModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Contoh: Production Assistant"
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
@@ -112,7 +112,7 @@ export function CreateProjectModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Keterangan alur penggunaan project ini..."
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
@@ -128,7 +128,7 @@ export function CreateProjectModal({
               required
               value={rpmLimit}
               onChange={(e) => setRpmLimit(parseInt(e.target.value, 10) || 60)}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <div>
@@ -142,7 +142,7 @@ export function CreateProjectModal({
               required
               value={concurrencyLimit}
               onChange={(e) => setConcurrencyLimit(parseInt(e.target.value, 10) || 5)}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
@@ -157,7 +157,7 @@ export function CreateProjectModal({
             value={allowedModels}
             onChange={(e) => setAllowedModels(e.target.value)}
             placeholder="gemini-default, gemini-flash"
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <p className="text-[11px] text-muted-foreground mt-1">Default: gemini-default</p>
         </div>

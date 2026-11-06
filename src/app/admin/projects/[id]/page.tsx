@@ -232,7 +232,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
           <Skeleton className="h-8 w-24" />
           <Skeleton className="h-8 w-48" />
         </div>
-        <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+        <div className="p-6 rounded-lg border border-border bg-card space-y-4">
           <Skeleton className="h-6 w-1/3" />
           <Skeleton className="h-4 w-1/2" />
           <Skeleton className="h-32 w-full" />
@@ -243,7 +243,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
 
   if (error && !project) {
     return (
-      <div className="p-8 rounded-xl border border-red-500/30 bg-red-500/10 text-center space-y-3">
+      <div className="p-8 rounded-lg border border-red-500/30 bg-red-500/10 text-center space-y-3">
         <AlertTriangle className="w-8 h-8 text-red-400 mx-auto" />
         <h2 className="text-sm font-semibold text-red-400">Error Memuat Project</h2>
         <p className="text-xs text-muted-foreground">{error}</p>
@@ -341,7 +341,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
 
       {/* Tab 1: Konfigurasi & Batas */}
       {activeTab === 'config' && (
-        <div className="max-w-2xl rounded-xl border border-border bg-card p-6 shadow-sm">
+        <div className="max-w-2xl rounded-lg border border-border bg-card p-6 shadow-sm">
           <form onSubmit={handleSaveConfig} className="space-y-4">
             {configSuccessMsg && (
               <div role="status" className="p-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-xs flex items-center gap-2">
@@ -455,7 +455,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
           </div>
 
           {apiKeys.length === 0 ? (
-            <div className="p-8 rounded-xl border border-border bg-card text-center space-y-3">
+            <div className="p-8 rounded-lg border border-border bg-card text-center space-y-3">
               <KeyRound className="w-8 h-8 text-muted-foreground mx-auto" />
               <h3 className="text-sm font-semibold text-foreground">Belum Ada API Key</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -466,7 +466,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
               </Button>
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-muted/80 text-muted-foreground border-b border-border">
@@ -535,7 +535,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
           </div>
 
           {aliases.length === 0 ? (
-            <div className="p-8 rounded-xl border border-border bg-card text-center space-y-3">
+            <div className="p-8 rounded-lg border border-border bg-card text-center space-y-3">
               <Layers className="w-8 h-8 text-muted-foreground mx-auto" />
               <h3 className="text-sm font-semibold text-foreground">Belum Ada Model Alias</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -546,7 +546,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
               </Button>
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-muted/80 text-muted-foreground border-b border-border">
@@ -631,7 +631,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
           </div>
 
           {credentials.length === 0 ? (
-            <div className="p-8 rounded-xl border border-border bg-card text-center space-y-3">
+            <div className="p-8 rounded-lg border border-border bg-card text-center space-y-3">
               <Cpu className="w-8 h-8 text-muted-foreground mx-auto" />
               <h3 className="text-sm font-semibold text-foreground">Belum Ada Kredensial Provider</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -648,7 +648,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-muted/80 text-muted-foreground border-b border-border">

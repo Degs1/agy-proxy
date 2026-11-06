@@ -51,7 +51,7 @@ export function Dialog({
       }}
     >
       <div
-        className={`w-full ${maxWidth} rounded-xl border border-border bg-card p-6 shadow-2xl text-card-foreground animate-in zoom-in-95 duration-150`}
+        className={`w-full ${maxWidth} rounded-lg border border-border bg-card p-6 shadow-2xl text-card-foreground animate-in zoom-in-95 duration-150`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-4">

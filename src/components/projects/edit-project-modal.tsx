@@ -86,7 +86,7 @@ export function EditProjectModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div role="alert" className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
+          <div role="alert" className="p-3 rounded-md border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -102,7 +102,7 @@ export function EditProjectModal({
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
@@ -114,7 +114,7 @@ export function EditProjectModal({
             id="edit-project-status"
             value={status}
             onChange={(e) => setStatus(e.target.value as 'active' | 'disabled')}
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="active">Aktif (Menerima Request Gateway)</option>
             <option value="disabled">Nonaktif (Menolak Request dengan 403 Forbidden)</option>
@@ -133,7 +133,7 @@ export function EditProjectModal({
               required
               value={rpmLimit}
               onChange={(e) => setRpmLimit(parseInt(e.target.value, 10) || 1)}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <div>
@@ -147,7 +147,7 @@ export function EditProjectModal({
               required
               value={concurrencyLimit}
               onChange={(e) => setConcurrencyLimit(parseInt(e.target.value, 10) || 1)}
-              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
