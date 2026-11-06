@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, use } from 'react';
+import React, { useState, useEffect, useCallback, use, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/layout/admin-layout';
@@ -15,7 +15,7 @@ import { RotateKeyModal } from '@/components/credentials/rotate-key-modal';
 import { CreateAliasModal } from '@/components/aliases/create-alias-modal';
 import { ConnectAntigravityModal } from '@/components/credentials/connect-antigravity-modal';
 import {
-  Sparkles,
+  Link2,
   ChevronLeft,
   KeyRound,
   Layers,
@@ -40,11 +40,43 @@ interface ProjectDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+const TABS_LIST = ['config', 'keys', 'aliases', 'credentials'] as const;
+type TabKey = (typeof TABS_LIST)[number];
+
 function ProjectDetailContent({ projectId }: { projectId: string }) {
   const router = useRouter();
   const { fetchWithCsrf } = useAdminAuth();
 
-  const [activeTab, setActiveTab] = useState<'config' | 'keys' | 'aliases' | 'credentials'>('config');
+  const [activeTab, setActiveTab] = useState<TabKey>('config');
+
+  const tabRefs = useRef<Record<TabKey, HTMLButtonElement | null>>({
+    config: null,
+    keys: null,
+    aliases: null,
+    credentials: null,
+  });
+
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    let nextIndex = currentIndex;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      nextIndex = (currentIndex + 1) % TABS_LIST.length;
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      nextIndex = (currentIndex - 1 + TABS_LIST.length) % TABS_LIST.length;
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      nextIndex = 0;
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      nextIndex = TABS_LIST.length - 1;
+    } else {
+      return;
+    }
+    const nextTab = TABS_LIST[nextIndex];
+    setActiveTab(nextTab);
+    tabRefs.current[nextTab]?.focus();
+  };
 
   // Resource states
   const [project, setProject] = useState<Project | null>(null);
@@ -288,10 +320,23 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
       </div>
 
       {/* Tabs Bar */}
-      <div className="border-b border-border flex items-center gap-1 overflow-x-auto">
+      <div
+        role="tablist"
+        aria-label="Project Management Tabs"
+        className="border-b border-border flex items-center gap-1 overflow-x-auto"
+      >
         <button
           type="button"
+          role="tab"
+          id="tab-config"
+          ref={(el) => {
+            tabRefs.current.config = el;
+          }}
+          aria-selected={activeTab === 'config'}
+          aria-controls="tabpanel-config"
+          tabIndex={activeTab === 'config' ? 0 : -1}
           onClick={() => setActiveTab('config')}
+          onKeyDown={(e) => handleTabKeyDown(e, 0)}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px] cursor-pointer ${
             activeTab === 'config'
               ? 'border-primary text-primary font-semibold'
@@ -303,7 +348,16 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
         </button>
         <button
           type="button"
+          role="tab"
+          id="tab-keys"
+          ref={(el) => {
+            tabRefs.current.keys = el;
+          }}
+          aria-selected={activeTab === 'keys'}
+          aria-controls="tabpanel-keys"
+          tabIndex={activeTab === 'keys' ? 0 : -1}
           onClick={() => setActiveTab('keys')}
+          onKeyDown={(e) => handleTabKeyDown(e, 1)}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px] cursor-pointer ${
             activeTab === 'keys'
               ? 'border-primary text-primary font-semibold'
@@ -315,7 +369,16 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
         </button>
         <button
           type="button"
+          role="tab"
+          id="tab-aliases"
+          ref={(el) => {
+            tabRefs.current.aliases = el;
+          }}
+          aria-selected={activeTab === 'aliases'}
+          aria-controls="tabpanel-aliases"
+          tabIndex={activeTab === 'aliases' ? 0 : -1}
           onClick={() => setActiveTab('aliases')}
+          onKeyDown={(e) => handleTabKeyDown(e, 2)}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px] cursor-pointer ${
             activeTab === 'aliases'
               ? 'border-primary text-primary font-semibold'
@@ -327,7 +390,16 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
         </button>
         <button
           type="button"
+          role="tab"
+          id="tab-credentials"
+          ref={(el) => {
+            tabRefs.current.credentials = el;
+          }}
+          aria-selected={activeTab === 'credentials'}
+          aria-controls="tabpanel-credentials"
+          tabIndex={activeTab === 'credentials' ? 0 : -1}
           onClick={() => setActiveTab('credentials')}
+          onKeyDown={(e) => handleTabKeyDown(e, 3)}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px] cursor-pointer ${
             activeTab === 'credentials'
               ? 'border-primary text-primary font-semibold'
@@ -341,7 +413,13 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
 
       {/* Tab 1: Konfigurasi & Batas */}
       {activeTab === 'config' && (
-        <div className="max-w-2xl rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div
+          role="tabpanel"
+          id="tabpanel-config"
+          aria-labelledby="tab-config"
+          tabIndex={0}
+          className="max-w-2xl rounded-lg border border-border bg-card p-6 shadow-sm"
+        >
           <form onSubmit={handleSaveConfig} className="space-y-4">
             {configSuccessMsg && (
               <div role="status" className="p-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-xs flex items-center gap-2">
@@ -443,7 +521,13 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
 
       {/* Tab 2: API Keys */}
       {activeTab === 'keys' && (
-        <div className="space-y-4">
+        <div
+          role="tabpanel"
+          id="tabpanel-keys"
+          aria-labelledby="tab-keys"
+          tabIndex={0}
+          className="space-y-4"
+        >
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               API key digunakan oleh aplikasi klien untuk mengakses endpoint OpenAI-compatible gateway.
@@ -523,7 +607,13 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
 
       {/* Tab 3: Model Aliases */}
       {activeTab === 'aliases' && (
-        <div className="space-y-4">
+        <div
+          role="tabpanel"
+          id="tabpanel-aliases"
+          aria-labelledby="tab-aliases"
+          tabIndex={0}
+          className="space-y-4"
+        >
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               Petakan alias publik yang dikirim klien (misal: `gemini-default`) ke kredensial Gemini aktif.
@@ -613,14 +703,20 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
 
       {/* Tab 4: Provider Credentials */}
       {activeTab === 'credentials' && (
-        <div className="space-y-4">
+        <div
+          role="tabpanel"
+          id="tabpanel-credentials"
+          aria-labelledby="tab-credentials"
+          tabIndex={0}
+          className="space-y-4"
+        >
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               Kredensial Gemini API dienkripsi menggunakan AES-256-GCM. Secret tersimpan tidak pernah ditampilkan kembali.
             </p>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setIsConnectAntigravityOpen(true)} className="gap-1.5 text-sky-400 border-sky-500/30 hover:bg-sky-500/10">
-                <Sparkles className="w-3.5 h-3.5" />
+                <Link2 className="w-3.5 h-3.5" />
                 <span>Hubungkan Antigravity (OAuth)</span>
               </Button>
               <Button size="sm" onClick={() => setIsCreateCredOpen(true)} className="gap-1.5">
@@ -639,7 +735,7 @@ function ProjectDetailContent({ projectId }: { projectId: string }) {
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Button size="sm" variant="outline" onClick={() => setIsConnectAntigravityOpen(true)} className="gap-1.5 text-sky-400 border-sky-500/30 hover:bg-sky-500/10">
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Link2 className="w-3.5 h-3.5" />
                   <span>Hubungkan Antigravity (OAuth)</span>
                 </Button>
                 <Button size="sm" onClick={() => setIsCreateCredOpen(true)}>

@@ -239,16 +239,16 @@ function MonitoringContent() {
             <Skeleton className="h-8 w-20" />
           ) : (
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-foreground font-mono">
+              <span className="text-2xl font-bold text-foreground font-mono tabular-nums">
                 {summary.totalRequests.toLocaleString()}
               </span>
             </div>
           )}
           {summary ? (
             <p className="text-[11px] text-muted-foreground">
-              <span className="text-emerald-400 font-medium">{summary.successfulRequests.toLocaleString()} sukses</span>
+              <span className="text-emerald-400 font-medium font-mono tabular-nums">{summary.successfulRequests.toLocaleString()} sukses</span>
               {' · '}
-              <span className={summary.failedRequests > 0 ? 'text-red-400 font-medium' : ''}>
+              <span className={`font-mono tabular-nums ${summary.failedRequests > 0 ? 'text-red-400 font-medium' : ''}`}>
                 {summary.failedRequests.toLocaleString()} gagal
               </span>
             </p>
@@ -270,7 +270,7 @@ function MonitoringContent() {
             <Skeleton className="h-8 w-20" />
           ) : (
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-foreground font-mono">
+              <span className="text-2xl font-bold text-foreground font-mono tabular-nums">
                 {summary.averageDurationMs.toFixed(1)} ms
               </span>
             </div>
@@ -291,14 +291,14 @@ function MonitoringContent() {
             <Skeleton className="h-8 w-20" />
           ) : (
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-foreground font-mono">
+              <span className="text-2xl font-bold text-foreground font-mono tabular-nums">
                 {summary.totalTokens.totalTokens.toLocaleString()}
               </span>
             </div>
           )}
           {summary ? (
             <p className="text-[11px] text-muted-foreground truncate">
-              Prompt: {summary.totalTokens.promptTokens.toLocaleString()} · Completion: {summary.totalTokens.completionTokens.toLocaleString()}
+              Prompt: <span className="font-mono tabular-nums">{summary.totalTokens.promptTokens.toLocaleString()}</span> · Completion: <span className="font-mono tabular-nums">{summary.totalTokens.completionTokens.toLocaleString()}</span>
             </p>
           ) : (
             <Skeleton className="h-4 w-32" />
@@ -318,7 +318,7 @@ function MonitoringContent() {
             <Skeleton className="h-8 w-20" />
           ) : (
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-foreground font-mono">
+              <span className="text-2xl font-bold text-foreground font-mono tabular-nums">
                 {summary.preauthRejections.total.toLocaleString()}
               </span>
               <Badge variant="warning" showIcon={false} className="text-[10px] px-1.5 py-0">
@@ -351,7 +351,7 @@ function MonitoringContent() {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <span className="text-xl font-bold text-yellow-400 font-mono">
+              <span className="text-xl font-bold text-yellow-400 font-mono tabular-nums">
                 {summary ? summary.preauthRejections.total.toLocaleString() : '0'}
               </span>
               <p className="text-[10px] text-muted-foreground">Total Penolakan</p>
@@ -383,7 +383,7 @@ function MonitoringContent() {
               <Layers className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">Rincian per Project</h2>
             </div>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground font-mono tabular-nums">
               {summary?.projects.length || 0} Project
             </span>
           </div>
@@ -415,17 +415,17 @@ function MonitoringContent() {
                       <td className="py-2.5 px-3 font-medium text-foreground">
                         {p.projectName}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums">
                         {p.totalRequests.toLocaleString()}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono">
-                        <span className="text-emerald-400">{p.successfulRequests}</span>
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums">
+                        <span className="text-emerald-400">{p.successfulRequests.toLocaleString()}</span>
                         {' / '}
                         <span className={p.failedRequests > 0 ? 'text-red-400' : 'text-muted-foreground'}>
-                          {p.failedRequests}
+                          {p.failedRequests.toLocaleString()}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-medium text-foreground">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums font-medium text-foreground">
                         {p.totalTokens.toLocaleString()}
                       </td>
                     </tr>
@@ -446,7 +446,7 @@ function MonitoringContent() {
               <Server className="w-4 h-4 text-emerald-400" />
               <h2 className="text-sm font-semibold text-foreground">Rincian per Provider</h2>
             </div>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground font-mono tabular-nums">
               {summary?.providers.length || 0} Provider
             </span>
           </div>
@@ -478,17 +478,17 @@ function MonitoringContent() {
                       <td className="py-2.5 px-3 font-medium text-foreground capitalize">
                         {pr.provider}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums">
                         {pr.totalRequests.toLocaleString()}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono">
-                        <span className="text-emerald-400">{pr.successfulRequests}</span>
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums">
+                        <span className="text-emerald-400">{pr.successfulRequests.toLocaleString()}</span>
                         {' / '}
                         <span className={pr.failedRequests > 0 ? 'text-red-400' : 'text-muted-foreground'}>
-                          {pr.failedRequests}
+                          {pr.failedRequests.toLocaleString()}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-medium text-foreground">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums font-medium text-foreground">
                         {pr.totalTokens.toLocaleString()}
                       </td>
                     </tr>
@@ -662,7 +662,7 @@ function MonitoringContent() {
                       className="hover:bg-muted/40 transition-colors"
                     >
                       {/* Timestamp */}
-                      <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">
+                      <td className="py-3 px-3 text-muted-foreground whitespace-nowrap font-mono tabular-nums">
                         {formatTimestamp(log.createdAt)}
                       </td>
 
@@ -715,7 +715,7 @@ function MonitoringContent() {
                       </td>
 
                       {/* Duration */}
-                      <td className="py-3 px-3 text-right font-mono text-muted-foreground whitespace-nowrap">
+                      <td className="py-3 px-3 text-right font-mono tabular-nums text-muted-foreground whitespace-nowrap">
                         {log.durationMs} ms
                       </td>
 
@@ -727,10 +727,10 @@ function MonitoringContent() {
                           </Badge>
                         ) : (
                           <div className="flex flex-col items-end">
-                            <span className="font-mono font-medium text-foreground">
+                            <span className="font-mono tabular-nums font-medium text-foreground">
                               {log.totalTokens.toLocaleString()}
                             </span>
-                            <span className="text-[10px] text-muted-foreground font-mono">
+                            <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
                               {formatNumber(log.inputTokens)} in / {formatNumber(log.outputTokens)} out
                             </span>
                           </div>
@@ -748,7 +748,7 @@ function MonitoringContent() {
         {details && details.total > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-border">
             <span className="text-xs text-muted-foreground">
-              Menampilkan {details.total === 0 ? 0 : offset + 1} - {Math.min(offset + limit, details.total)} dari {details.total} log
+              Menampilkan <span className="font-mono tabular-nums">{details.total === 0 ? 0 : offset + 1}</span> - <span className="font-mono tabular-nums">{Math.min(offset + limit, details.total)}</span> dari <span className="font-mono tabular-nums">{details.total}</span> log
             </span>
             <div className="flex items-center gap-2">
               <Button

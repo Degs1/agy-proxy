@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ExternalLink, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { AlertCircle, ExternalLink, CheckCircle2, Loader2, Link2 } from 'lucide-react';
 import { ProviderCredential } from '@/lib/frontend/types';
 
 interface ConnectAntigravityModalProps {
@@ -209,7 +209,7 @@ export function ConnectAntigravityModal({
             {!authUrl ? (
               <div className="p-4 rounded-lg border border-sky-500/30 bg-sky-500/5 space-y-3">
                 <div className="flex items-center gap-2 text-sky-400 font-medium text-xs">
-                  <Sparkles className="w-4 h-4" />
+                  <Link2 className="w-4 h-4" />
                   <span>Alur Otentikasi Cloud Code / Antigravity</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
